@@ -7,12 +7,12 @@ import { filterTree, mapTree } from '@vben-core/shared/utils';
  */
 async function generateRoutesByFrontend(
   routes: RouteRecordRaw[],
-  roles: string[],
+  accessCodes: string[],
   forbiddenComponent?: RouteRecordRaw['component'],
 ): Promise<RouteRecordRaw[]> {
-  // 根据角色标识过滤路由表,判断当前用户是否拥有指定权限
+  // 根据权限码过滤路由表，判断当前用户是否拥有指定权限
   const finalRoutes = filterTree(routes, (route) => {
-    return hasAuthority(route, roles);
+    return hasAuthority(route, accessCodes);
   });
 
   if (!forbiddenComponent) {

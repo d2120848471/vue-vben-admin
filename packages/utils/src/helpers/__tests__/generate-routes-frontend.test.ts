@@ -1,105 +1,133 @@
 import type { RouteRecordRaw } from 'vue-router';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   generateRoutesByFrontend,
   hasAuthority,
 } from '../generate-routes-frontend';
 
-// Mock 路由数据
+const forbiddenComponent = vi.fn();
+
 const mockRoutes = [
   {
     meta: {
-      authority: ['admin', 'user'],
+      authority: ['admin.list', 'subject.manage'],
       hideInMenu: false,
     },
-    path: '/dashboard',
+    path: '/employees',
     children: [
       {
-        path: '/dashboard/overview',
-        meta: { authority: ['admin'], hideInMenu: false },
+        path: '/employees/list',
+        meta: { authority: ['admin.list'], hideInMenu: false },
       },
       {
-        path: '/dashboard/stats',
-        meta: { authority: ['user'], hideInMenu: true },
+        path: '/employees/trash',
+        meta: { authority: ['admin.list'], hideInMenu: true },
       },
     ],
   },
   {
-    meta: { authority: ['admin'], hideInMenu: false },
-    path: '/settings',
+    meta: {
+      authority: ['config.sms'],
+      hideInMenu: false,
+      menuVisibleWithForbidden: true,
+    },
+    path: '/settings/sms',
+    component: () => null,
   },
   {
     meta: { hideInMenu: false },
-    path: '/profile',
+    path: '/home',
   },
 ] as RouteRecordRaw[];
 
 describe('hasAuthority', () => {
-  it('should return true if there is no authority defined', () => {
-    expect(hasAuthority(mockRoutes[2], ['admin'])).toBe(true);
+  it('returns true if there is no authority defined', () => {
+    expect(hasAuthority(mockRoutes[2], ['admin.list'])).toBe(true);
   });
 
-  it('should return true if the user has the required authority', () => {
-    expect(hasAuthority(mockRoutes[0], ['admin'])).toBe(true);
+  it('returns true if the user has the required permission code', () => {
+    expect(hasAuthority(mockRoutes[0], ['admin.list'])).toBe(true);
   });
 
-  it('should return false if the user does not have the required authority', () => {
-    expect(hasAuthority(mockRoutes[1], ['user'])).toBe(false);
+  it('returns false if the user does not have the required permission code', () => {
+    expect(hasAuthority(mockRoutes[0], ['config.sms'])).toBe(false);
+  });
+
+  it('keeps route accessible when menuVisibleWithForbidden is enabled', () => {
+    expect(hasAuthority(mockRoutes[1], ['admin.list'])).toBe(true);
   });
 });
 
 describe('generateRoutesByFrontend', () => {
-  it('should handle routes without children', async () => {
+  it('keeps routes without authority', async () => {
     const generatedRoutes = await generateRoutesByFrontend(mockRoutes, [
-      'user',
+      'admin.list',
     ]);
+
     expect(generatedRoutes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          path: '/profile', // This route has no children and should be included
+          path: '/home',
         }),
       ]),
     );
   });
 
-  it('should handle empty roles array', async () => {
+  it('filters routes when permission codes are missing', async () => {
     const generatedRoutes = await generateRoutesByFrontend(mockRoutes, []);
+
+    expect(generatedRoutes).toEqual([
+      {
+        component: expect.any(Function),
+        meta: {
+          authority: ['config.sms'],
+          hideInMenu: false,
+          menuVisibleWithForbidden: true,
+        },
+        path: '/settings/sms',
+      },
+      {
+        meta: { hideInMenu: false },
+        path: '/home',
+      },
+    ]);
+  });
+
+  it('replaces forbidden-visible routes with the forbidden component', async () => {
+    const generatedRoutes = await generateRoutesByFrontend(
+      mockRoutes,
+      ['admin.list'],
+      forbiddenComponent,
+    );
+
     expect(generatedRoutes).toEqual(
       expect.arrayContaining([
-        // Only routes without authority should be included
         expect.objectContaining({
-          path: '/profile',
-        }),
-      ]),
-    );
-    expect(generatedRoutes).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          path: '/dashboard',
-        }),
-        expect.objectContaining({
-          path: '/settings',
+          component: forbiddenComponent,
+          path: '/settings/sms',
         }),
       ]),
     );
   });
 
-  it('should handle missing meta fields', async () => {
+  it('handles missing meta fields', async () => {
     const routesWithMissingMeta = [
-      { path: '/path1' }, // No meta
-      { meta: {}, path: '/path2' }, // Empty meta
-      { meta: { authority: ['admin'] }, path: '/path3' }, // Only authority
+      { path: '/path1' },
+      { meta: {}, path: '/path2' },
+      { meta: { authority: ['admin.list'] }, path: '/path3' },
     ];
+
     const generatedRoutes = await generateRoutesByFrontend(
       routesWithMissingMeta as RouteRecordRaw[],
-      ['admin'],
+      ['admin.list'],
     );
+
     expect(generatedRoutes).toEqual([
       { path: '/path1' },
       { meta: {}, path: '/path2' },
-      { meta: { authority: ['admin'] }, path: '/path3' },
+      { meta: { authority: ['admin.list'] }, path: '/path3' },
     ]);
   });
 });

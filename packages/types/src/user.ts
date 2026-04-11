@@ -3,18 +3,23 @@ import type { BasicUserInfo } from '@vben-core/typings';
 /** 用户信息 */
 interface UserInfo extends BasicUserInfo {
   /**
-   * 用户描述
+   * 用户组ID
    */
-  desc: string;
+  groupId: string;
+  /**
+   * 用户组名称
+   */
+  groupName: string;
+
   /**
    * 首页地址
    */
   homePath: string;
 
   /**
-   * accessToken
+   * 是否商务账号
    */
-  token: string;
+  isBusiness: boolean;
 }
 
 export type { UserInfo };

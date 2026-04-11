@@ -1,63 +1,44 @@
 <script setup lang="ts">
-import type { BasicOption } from '@vben/types';
-
 import type { VbenFormSchema } from '#/adapter/form';
 
 import { computed, onMounted, ref } from 'vue';
 
 import { ProfileBaseSetting } from '@vben/common-ui';
-
-import { getUserInfoApi } from '#/api';
+import { useUserStore } from '@vben/stores';
 
 const profileBaseSettingRef = ref();
-
-const MOCK_ROLES_OPTIONS: BasicOption[] = [
-  {
-    label: '管理员',
-    value: 'super',
-  },
-  {
-    label: '用户',
-    value: 'user',
-  },
-  {
-    label: '测试',
-    value: 'test',
-  },
-];
+const userStore = useUserStore();
 
 const formSchema = computed((): VbenFormSchema[] => {
   return [
     {
-      fieldName: 'realName',
       component: 'Input',
+      fieldName: 'realName',
       label: '姓名',
     },
     {
-      fieldName: 'username',
       component: 'Input',
+      fieldName: 'username',
       label: '用户名',
     },
     {
-      fieldName: 'roles',
-      component: 'Select',
-      componentProps: {
-        mode: 'tags',
-        options: MOCK_ROLES_OPTIONS,
-      },
-      label: '角色',
+      component: 'Input',
+      fieldName: 'groupName',
+      label: '所属用户组',
     },
     {
-      fieldName: 'introduction',
-      component: 'Textarea',
-      label: '个人简介',
+      component: 'Input',
+      fieldName: 'isBusinessLabel',
+      label: '商务账号',
     },
   ];
 });
 
 onMounted(async () => {
-  const data = await getUserInfoApi();
-  profileBaseSettingRef.value.getFormApi().setValues(data);
+  profileBaseSettingRef.value.getFormApi().setValues({
+    ...userStore.userInfo,
+    isBusinessLabel: userStore.userInfo?.isBusiness ? '是' : '否',
+  });
 });
 </script>
 <template>
