@@ -125,6 +125,93 @@ export interface SMSConfigPayload {
   template_code: string;
 }
 
+export type SortAction = 'bottom' | 'down' | 'top' | 'up';
+
+export interface BrandListItem {
+  children: BrandListItem[];
+  created_at: string;
+  credential_image: string;
+  description: string;
+  goods_count: number;
+  has_children: boolean;
+  icon: string;
+  id: number;
+  is_visible: number;
+  name: string;
+  parent_id: number;
+  sort: number;
+  updated_at: string;
+}
+
+export interface BrandListQuery extends UserListQuery {
+  name?: string;
+}
+
+export interface BrandCreatePayload {
+  credential_image: string;
+  description: string;
+  icon: string;
+  is_visible: number;
+  name: string;
+  parent_id: number;
+}
+
+export interface BrandUpdatePayload {
+  credential_image: string;
+  description: string;
+  icon: string;
+  is_visible: number;
+  name: string;
+}
+
+export interface BrandUploadResult {
+  file_name: string;
+  size: number;
+  url: string;
+}
+
+export interface BrandSelectorItem {
+  icon: string;
+  id: number;
+  name: string;
+}
+
+export interface IndustryListItem {
+  brand_count: number;
+  created_at: string;
+  id: number;
+  name: string;
+  sort: number;
+  updated_at: string;
+}
+
+export interface IndustryListQuery extends UserListQuery {
+  name?: string;
+}
+
+export interface IndustryPayload {
+  brand_ids: number[];
+  name: string;
+}
+
+export interface IndustrySelectorQuery {
+  name?: string;
+}
+
+export interface IndustryRelationBrandItem {
+  brand_icon: string;
+  brand_id: number;
+  brand_name: string;
+  id: number;
+  sort: number;
+}
+
+export interface IndustryRelationListResult {
+  industry_id: number;
+  industry_name: string;
+  list: IndustryRelationBrandItem[];
+}
+
 // 后端这批状态/授权接口统一切到了 PATCH，这里集中走底层 request。
 function patchApi<T = unknown>(url: string, data?: unknown) {
   return requestClient.request<T>(url, {
@@ -255,4 +342,113 @@ export async function getSMSConfigApi() {
 
 export async function saveSMSConfigApi(data: SMSConfigPayload) {
   return requestClient.put('/admin/settings/sms', data);
+}
+
+export async function getBrandListApi(params: BrandListQuery) {
+  return requestClient.get<PagedResult<BrandListItem>>('/admin/brands', {
+    params,
+  });
+}
+
+export async function getBrandChildrenApi(id: number) {
+  return requestClient.get<{ list: BrandListItem[] }>(
+    `/admin/brands/${id}/children`,
+  );
+}
+
+export async function addBrandApi(data: BrandCreatePayload) {
+  return requestClient.post('/admin/brands', data);
+}
+
+export async function updateBrandApi(id: number, data: BrandUpdatePayload) {
+  return requestClient.put(`/admin/brands/${id}`, data);
+}
+
+export async function deleteBrandApi(id: number) {
+  return requestClient.delete(`/admin/brands/${id}`);
+}
+
+export async function sortBrandApi(id: number, action: SortAction) {
+  return patchApi(`/admin/brands/${id}/sort`, { action });
+}
+
+export async function toggleBrandVisibilityApi(id: number, isVisible: number) {
+  return patchApi(`/admin/brands/${id}/visibility`, {
+    is_visible: isVisible,
+  });
+}
+
+export async function uploadBrandImageApi(data: FormData) {
+  return requestClient.post<BrandUploadResult>('/admin/brands/upload', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+}
+
+export async function getIndustryListApi(params: IndustryListQuery) {
+  return requestClient.get<PagedResult<IndustryListItem>>('/admin/industries', {
+    params,
+  });
+}
+
+export async function getBrandSelectorApi(params: IndustrySelectorQuery) {
+  return requestClient.get<{ list: BrandSelectorItem[] }>(
+    '/admin/industries/brand-selector',
+    { params },
+  );
+}
+
+export async function getIndustryRelationBrandsApi(
+  id: number,
+  params: IndustrySelectorQuery = {},
+) {
+  return requestClient.get<IndustryRelationListResult>(
+    `/admin/industries/${id}/brands`,
+    { params },
+  );
+}
+
+export async function addIndustryApi(data: IndustryPayload) {
+  return requestClient.post('/admin/industries', data);
+}
+
+export async function updateIndustryApi(id: number, data: IndustryPayload) {
+  return requestClient.put(`/admin/industries/${id}`, data);
+}
+
+export async function deleteIndustryApi(id: number) {
+  return requestClient.delete(`/admin/industries/${id}`);
+}
+
+export async function sortIndustryApi(id: number, action: SortAction) {
+  return patchApi(`/admin/industries/${id}/sort`, { action });
+}
+
+export async function addIndustryRelationBrandsApi(
+  id: number,
+  brandIds: number[],
+) {
+  return requestClient.post(`/admin/industries/${id}/brands`, {
+    brand_ids: brandIds,
+  });
+}
+
+export async function deleteIndustryRelationBrandsApi(
+  id: number,
+  brandIds: number[],
+) {
+  return requestClient.delete(`/admin/industries/${id}/brands`, {
+    data: { brand_ids: brandIds },
+  });
+}
+
+export async function sortIndustryRelationBrandApi(
+  id: number,
+  brandId: number,
+  action: SortAction,
+) {
+  return patchApi(`/admin/industries/${id}/brands/${brandId}/sort`, {
+    action,
+  });
 }

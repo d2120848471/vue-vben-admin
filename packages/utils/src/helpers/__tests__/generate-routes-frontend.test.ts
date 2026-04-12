@@ -112,6 +112,42 @@ describe('generateRoutesByFrontend', () => {
     );
   });
 
+  it('keeps the product parent route when only one child permission is present', async () => {
+    const routesWithProducts = [
+      {
+        path: '/products',
+        meta: { authority: ['product.brand', 'product.industry'] },
+        children: [
+          {
+            path: '/products/brands',
+            meta: { authority: ['product.brand'] },
+          },
+          {
+            path: '/products/industries',
+            meta: { authority: ['product.industry'] },
+          },
+        ],
+      },
+    ] as RouteRecordRaw[];
+
+    const generatedRoutes = await generateRoutesByFrontend(routesWithProducts, [
+      'product.brand',
+    ]);
+
+    expect(generatedRoutes).toEqual([
+      {
+        path: '/products',
+        meta: { authority: ['product.brand', 'product.industry'] },
+        children: [
+          {
+            path: '/products/brands',
+            meta: { authority: ['product.brand'] },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('handles missing meta fields', async () => {
     const routesWithMissingMeta = [
       { path: '/path1' },
