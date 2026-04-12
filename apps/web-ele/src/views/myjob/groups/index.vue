@@ -1,4 +1,10 @@
 <script lang="ts" setup>
+import type { FormInstance } from 'element-plus';
+
+import type { GridPageParams } from '../shared';
+
+import type { GroupListItem, MenuTreeItem } from '#/api';
+
 import { computed, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
@@ -18,16 +24,26 @@ import {
   ElTree,
 } from 'element-plus';
 
-import type { FormInstance } from 'element-plus';
-
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { addGroupApi, deleteGroupApi, getGroupAuthApi, getGroupsApi, getPermissionTreeApi, saveGroupAuthApi, updateGroupApi, updateGroupStatusApi } from '#/api';
-import type { GroupListItem, MenuTreeItem } from '#/api';
+import {
+  addGroupApi,
+  deleteGroupApi,
+  getGroupAuthApi,
+  getGroupsApi,
+  getPermissionTreeApi,
+  saveGroupAuthApi,
+  updateGroupApi,
+  updateGroupStatusApi,
+} from '#/api';
 import { useAuthStore } from '#/store';
 
-import type { GridPageParams } from '../shared';
-
-import { keywordMatch, resolvePageParams, toGridResult } from '../shared';
+import {
+  keywordMatch,
+  MYJOB_GRID_CLASS,
+  MYJOB_PAGE_CONTENT_CLASS,
+  resolvePageParams,
+  toGridResult,
+} from '../shared';
 
 const accessStore = useAccessStore();
 const userStore = useUserStore();
@@ -47,7 +63,7 @@ const dialogForm = reactive({
 
 const authDrawerVisible = ref(false);
 const authDrawerLoading = ref(false);
-const authGroup = ref<null | GroupListItem>(null);
+const authGroup = ref<GroupListItem | null>(null);
 const permissionTree = ref<MenuTreeItem[]>([]);
 const checkedMenuIds = ref<number[]>([]);
 const treeRef = ref<InstanceType<typeof ElTree>>();
@@ -141,15 +157,11 @@ async function saveGroupAuth() {
     return;
   }
 
-  const checkedKeys = (treeRef.value?.getCheckedKeys(false) as number[] | undefined) || [];
+  const checkedKeys =
+    (treeRef.value?.getCheckedKeys(false) as number[] | undefined) || [];
   const halfCheckedKeys =
     (treeRef.value?.getHalfCheckedKeys?.() as number[] | undefined) || [];
-  const menuIds = [
-    ...new Set([
-      ...checkedKeys,
-      ...halfCheckedKeys,
-    ]),
-  ];
+  const menuIds = [...new Set([...checkedKeys, ...halfCheckedKeys])];
   authDrawerLoading.value = true;
   try {
     await saveGroupAuthApi(authGroup.value.id, menuIds);
@@ -178,6 +190,7 @@ const [Grid, gridApi] = useVbenVxeGrid<GroupListItem>({
       },
     ],
   },
+  gridClass: MYJOB_GRID_CLASS,
   gridOptions: {
     columns: [
       { field: 'id', title: 'ID', width: 80 },
@@ -226,12 +239,11 @@ const [Grid, gridApi] = useVbenVxeGrid<GroupListItem>({
       zoom: true,
     },
   },
-  tableTitle: '用户组列表',
 });
 </script>
 
 <template>
-  <Page description="用户组管理和授权抽屉都在当前页完成。" title="用户组与授权">
+  <Page :content-class="MYJOB_PAGE_CONTENT_CLASS">
     <Grid>
       <template #toolbar-actions>
         <ElButton v-if="canManage" type="primary" @click="openCreateDialog">
@@ -324,9 +336,9 @@ const [Grid, gridApi] = useVbenVxeGrid<GroupListItem>({
       size="520px"
     >
       <div v-loading="authDrawerLoading" class="space-y-4">
-        <ElTag v-if="authGroup" type="info"
-          >当前员工数：{{ authGroup.user_count }}</ElTag
-        >
+        <ElTag v-if="authGroup" type="info">
+          当前员工数：{{ authGroup.user_count }}
+        </ElTag>
         <div class="rounded-2xl border border-border p-4">
           <ElTree
             ref="treeRef"

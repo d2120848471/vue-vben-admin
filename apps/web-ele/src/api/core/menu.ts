@@ -12,7 +12,7 @@ export interface MenuTreeItem {
 
 /** 获取授权菜单树 */
 export async function getMenuTreeApi() {
-  return requestClient.get<MenuTreeItem[]>('/api/admin/menu/tree');
+  return requestClient.get<MenuTreeItem[]>('/admin/menu/tree');
 }
 
 /** 兼容旧示例组件导入 */

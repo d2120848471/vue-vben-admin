@@ -1,15 +1,18 @@
 <script lang="ts" setup>
+import type { GridPageParams } from '../shared';
+
+import type { LoginLogItem } from '#/api';
+
 import { Page } from '@vben/common-ui';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getLoginLogsApi } from '#/api';
-import type { LoginLogItem } from '#/api';
-
-import type { GridPageParams } from '../shared';
 
 import {
   extractDateRange,
   formatDateTime,
+  MYJOB_GRID_CLASS,
+  MYJOB_PAGE_CONTENT_CLASS,
   resolvePageParams,
   toGridResult,
 } from '../shared';
@@ -36,6 +39,7 @@ const [Grid] = useVbenVxeGrid<LoginLogItem>({
       },
     ],
   },
+  gridClass: MYJOB_GRID_CLASS,
   gridOptions: {
     columns: [
       { field: 'id', title: 'ID', width: 80 },
@@ -79,12 +83,11 @@ const [Grid] = useVbenVxeGrid<LoginLogItem>({
       zoom: true,
     },
   },
-  tableTitle: '登录日志',
 });
 </script>
 
 <template>
-  <Page description="支持管理员和时间范围筛选。" title="登录日志">
+  <Page :content-class="MYJOB_PAGE_CONTENT_CLASS">
     <Grid />
   </Page>
 </template>

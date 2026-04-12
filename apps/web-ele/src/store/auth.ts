@@ -22,7 +22,10 @@ import {
 import { $t } from '#/locales';
 import { resetRoutes } from '#/router';
 
-import { normalizeCurrentUserResult, normalizeLoginResult } from './auth-session';
+import {
+  normalizeCurrentUserResult,
+  normalizeLoginResult,
+} from './auth-session';
 
 interface SMSLoginState extends SMSChallengeState {
   username: string;

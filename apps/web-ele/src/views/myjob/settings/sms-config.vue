@@ -1,9 +1,12 @@
 <script lang="ts" setup>
+import type { FormInstance } from 'element-plus';
+
 import { onMounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
 import {
+  ElButton,
   ElCard,
   ElCheckbox,
   ElForm,
@@ -13,12 +16,11 @@ import {
   ElMessage,
   ElSkeleton,
   ElTag,
-  ElButton,
 } from 'element-plus';
 
-import type { FormInstance } from 'element-plus';
-
 import { getSMSConfigApi, saveSMSConfigApi } from '#/api';
+
+import { MYJOB_PAGE_CONTENT_CLASS } from '../shared';
 
 const formRef = ref<FormInstance>();
 const loading = ref(false);
@@ -96,10 +98,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Page
-    description="仅超级管理员可见，配置项直接对接后端 /api/admin/config/sms。"
-    title="短信配置"
-  >
+  <Page :content-class="MYJOB_PAGE_CONTENT_CLASS">
     <ElSkeleton :loading="loading" animated>
       <ElCard shadow="never">
         <template #header>
@@ -110,9 +109,9 @@ onMounted(() => {
                 当前保存的密钥会以掩码形式展示，勾选“保留当前值”时不会覆盖旧密钥。
               </p>
             </div>
-            <ElTag v-if="metadata.updated_at" type="info"
-              >最近更新时间：{{ metadata.updated_at }}</ElTag
-            >
+            <ElTag v-if="metadata.updated_at" type="info">
+              最近更新时间：{{ metadata.updated_at }}
+            </ElTag>
           </div>
         </template>
 
@@ -128,9 +127,9 @@ onMounted(() => {
             }}</span>
           </ElFormItem>
           <ElFormItem label="保留 AccessKey">
-            <ElCheckbox v-model="formModel.keep_access_key"
-              >保留当前值</ElCheckbox
-            >
+            <ElCheckbox v-model="formModel.keep_access_key">
+              保留当前值
+            </ElCheckbox>
           </ElFormItem>
           <ElFormItem
             v-if="!formModel.keep_access_key"
@@ -152,9 +151,9 @@ onMounted(() => {
             }}</span>
           </ElFormItem>
           <ElFormItem label="保留 AccessKeySecret">
-            <ElCheckbox v-model="formModel.keep_access_key_secret"
-              >保留当前值</ElCheckbox
-            >
+            <ElCheckbox v-model="formModel.keep_access_key_secret">
+              保留当前值
+            </ElCheckbox>
           </ElFormItem>
           <ElFormItem
             v-if="!formModel.keep_access_key_secret"

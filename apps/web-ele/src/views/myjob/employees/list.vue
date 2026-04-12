@@ -1,4 +1,10 @@
 <script lang="ts" setup>
+import type { FormInstance } from 'element-plus';
+
+import type { GridPageParams } from '../shared';
+
+import type { GroupListItem, UserFormPayload, UserListItem } from '#/api';
+
 import { computed, onMounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
@@ -18,15 +24,26 @@ import {
   ElTag,
 } from 'element-plus';
 
-import type { FormInstance } from 'element-plus';
-
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { addAdminUserApi, cancelAdminUserBusinessApi, deleteAdminUserApi, getAdminUsersApi, getGroupsApi, setAdminUserBusinessApi, updateAdminUserApi, updateAdminUserNotifyApi, updateAdminUserStatusApi } from '#/api';
-import type { GroupListItem, UserFormPayload, UserListItem } from '#/api';
+import {
+  addAdminUserApi,
+  cancelAdminUserBusinessApi,
+  deleteAdminUserApi,
+  getAdminUsersApi,
+  getGroupsApi,
+  setAdminUserBusinessApi,
+  updateAdminUserApi,
+  updateAdminUserNotifyApi,
+  updateAdminUserStatusApi,
+} from '#/api';
 
-import type { GridPageParams } from '../shared';
-
-import { keywordMatch, resolvePageParams, toGridResult } from '../shared';
+import {
+  keywordMatch,
+  MYJOB_GRID_CLASS,
+  MYJOB_PAGE_CONTENT_CLASS,
+  resolvePageParams,
+  toGridResult,
+} from '../shared';
 
 interface UserDialogState {
   confirm_password: string;
@@ -162,13 +179,13 @@ async function handleNotifyChange(row: UserListItem, value: boolean) {
 
 function getSelectedIds() {
   return (
-    (gridApi.grid?.getCheckboxRecords?.() as UserListItem[] | undefined) || []
+    (gridApi.grid?.getCheckboxRecords?.() as undefined | UserListItem[]) || []
   ).map((item) => item.id);
 }
 
 async function handleBatchBusiness(flag: 'cancel' | 'set') {
   const ids = getSelectedIds();
-  if (!ids.length) {
+  if (ids.length === 0) {
     ElMessage.warning('请先选择员工');
     return;
   }
@@ -195,6 +212,7 @@ const [Grid, gridApi] = useVbenVxeGrid<UserListItem>({
       },
     ],
   },
+  gridClass: MYJOB_GRID_CLASS,
   gridOptions: {
     checkboxConfig: {
       reserve: true,
@@ -265,7 +283,6 @@ const [Grid, gridApi] = useVbenVxeGrid<UserListItem>({
       zoom: true,
     },
   },
-  tableTitle: '员工列表',
 });
 
 const dialogTitle = computed(() => (editingId.value ? '编辑员工' : '新增员工'));
@@ -323,10 +340,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Page
-    description="支持新增、编辑、删除、状态切换、余额通知和批量商务设置。"
-    title="员工管理"
-  >
+  <Page :content-class="MYJOB_PAGE_CONTENT_CLASS">
     <Grid>
       <template #toolbar-actions>
         <div class="flex flex-wrap items-center gap-3">

@@ -1,5 +1,9 @@
 import dayjs from 'dayjs';
 
+// MyJob 后台页面只做局部间距收口，避免影响公共 Page/Grid 默认布局。
+export const MYJOB_GRID_CLASS = 'p-0';
+export const MYJOB_PAGE_CONTENT_CLASS = 'p-0';
+
 export interface GridPageParams {
   page?: {
     currentPage?: number;

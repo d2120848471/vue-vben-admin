@@ -1,15 +1,18 @@
 <script lang="ts" setup>
+import type { GridPageParams } from '../shared';
+
+import type { OperationLogItem } from '#/api';
+
 import { Page } from '@vben/common-ui';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getOperationLogsApi } from '#/api';
-import type { OperationLogItem } from '#/api';
-
-import type { GridPageParams } from '../shared';
 
 import {
   extractDateRange,
   formatDateTime,
+  MYJOB_GRID_CLASS,
+  MYJOB_PAGE_CONTENT_CLASS,
   resolvePageParams,
   toGridResult,
 } from '../shared';
@@ -44,6 +47,7 @@ const [Grid] = useVbenVxeGrid<OperationLogItem>({
       },
     ],
   },
+  gridClass: MYJOB_GRID_CLASS,
   gridOptions: {
     columns: [
       { field: 'id', title: 'ID', width: 80 },
@@ -89,12 +93,11 @@ const [Grid] = useVbenVxeGrid<OperationLogItem>({
       zoom: true,
     },
   },
-  tableTitle: '操作日志',
 });
 </script>
 
 <template>
-  <Page description="支持管理员、关键词、时间范围和分页筛选。" title="操作日志">
+  <Page :content-class="MYJOB_PAGE_CONTENT_CLASS">
     <Grid />
   </Page>
 </template>

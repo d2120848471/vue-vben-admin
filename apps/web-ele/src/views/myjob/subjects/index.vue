@@ -1,4 +1,10 @@
 <script lang="ts" setup>
+import type { FormInstance } from 'element-plus';
+
+import type { GridPageParams } from '../shared';
+
+import type { SubjectItem } from '#/api';
+
 import { computed, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
@@ -11,20 +17,21 @@ import {
   ElFormItem,
   ElInput,
   ElMessage,
-  ElSelect,
   ElOption,
+  ElSelect,
   ElTag,
 } from 'element-plus';
 
-import type { FormInstance } from 'element-plus';
-
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { addSubjectApi, getSubjectsApi, updateSubjectApi } from '#/api';
-import type { SubjectItem } from '#/api';
 
-import type { GridPageParams } from '../shared';
-
-import { formatDateTime, keywordMatch, toGridResult } from '../shared';
+import {
+  formatDateTime,
+  keywordMatch,
+  MYJOB_GRID_CLASS,
+  MYJOB_PAGE_CONTENT_CLASS,
+  toGridResult,
+} from '../shared';
 
 const accessStore = useAccessStore();
 const canManage = computed(() =>
@@ -102,6 +109,7 @@ const [Grid, gridApi] = useVbenVxeGrid<SubjectItem>({
       },
     ],
   },
+  gridClass: MYJOB_GRID_CLASS,
   gridOptions: {
     columns: [
       { field: 'id', title: 'ID', width: 80 },
@@ -148,12 +156,11 @@ const [Grid, gridApi] = useVbenVxeGrid<SubjectItem>({
       zoom: true,
     },
   },
-  tableTitle: '主体配置',
 });
 </script>
 
 <template>
-  <Page description="主体新增和编辑统一在当前页弹窗完成。" title="主体配置">
+  <Page :content-class="MYJOB_PAGE_CONTENT_CLASS">
     <Grid>
       <template #toolbar-actions>
         <ElButton v-if="canManage" type="primary" @click="openCreateDialog">

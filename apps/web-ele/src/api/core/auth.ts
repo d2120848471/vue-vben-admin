@@ -50,23 +50,23 @@ export namespace AuthApi {
 
 /** 登录 */
 export async function loginApi(data: AuthApi.LoginParams) {
-  return requestClient.post<AuthApi.LoginResult>('/api/admin/login', data);
+  return requestClient.post<AuthApi.LoginResult>('/admin/login', data);
 }
 
 /** 发送登录验证码 */
 export async function sendLoginSmsApi(data: AuthApi.LoginSMSSendParams) {
-  return requestClient.post('/api/admin/login/sms/send', data);
+  return requestClient.post('/admin/login/sms/send', data);
 }
 
 /** 校验短信验证码 */
 export async function verifyLoginSmsApi(data: AuthApi.LoginSMSVerifyParams) {
   return requestClient.post<AuthApi.LoginSMSVerifyResult>(
-    '/api/admin/login/sms/verify',
+    '/admin/login/sms/verify',
     data,
   );
 }
 
 /** 退出登录 */
 export async function logoutApi() {
-  return requestClient.post('/api/admin/logout');
+  return requestClient.post('/admin/logout');
 }

@@ -1,4 +1,8 @@
 <script lang="ts" setup>
+import type { GridPageParams } from '../shared';
+
+import type { UserListItem } from '#/api';
+
 import { computed } from 'vue';
 
 import { Page } from '@vben/common-ui';
@@ -8,11 +12,14 @@ import { ElButton, ElMessage } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getAdminUserTrashApi, restoreAdminUserApi } from '#/api';
-import type { UserListItem } from '#/api';
 
-import type { GridPageParams } from '../shared';
-
-import { keywordMatch, resolvePageParams, toGridResult } from '../shared';
+import {
+  keywordMatch,
+  MYJOB_GRID_CLASS,
+  MYJOB_PAGE_CONTENT_CLASS,
+  resolvePageParams,
+  toGridResult,
+} from '../shared';
 
 const accessStore = useAccessStore();
 const canManage = computed(() =>
@@ -38,6 +45,7 @@ const [Grid, gridApi] = useVbenVxeGrid<UserListItem>({
       },
     ],
   },
+  gridClass: MYJOB_GRID_CLASS,
   gridOptions: {
     columns: [
       { field: 'id', title: 'ID', width: 80 },
@@ -85,15 +93,11 @@ const [Grid, gridApi] = useVbenVxeGrid<UserListItem>({
       zoom: true,
     },
   },
-  tableTitle: '员工回收站',
 });
 </script>
 
 <template>
-  <Page
-    description="已删除员工统一在当前页恢复，不额外拆详情页。"
-    title="回收站"
-  >
+  <Page :content-class="MYJOB_PAGE_CONTENT_CLASS">
     <Grid>
       <template #actions="{ row }">
         <ElButton

@@ -122,108 +122,105 @@ export interface SMSConfigPayload {
 }
 
 export async function getAdminUsersApi(params: UserListQuery) {
-  return requestClient.get<PagedResult<UserListItem>>('/api/admin/user/list', {
+  return requestClient.get<PagedResult<UserListItem>>('/admin/user/list', {
     params,
   });
 }
 
 export async function addAdminUserApi(data: UserFormPayload) {
-  return requestClient.post('/api/admin/user/add', data);
+  return requestClient.post('/admin/user/add', data);
 }
 
 export async function updateAdminUserApi(id: number, data: UserFormPayload) {
-  return requestClient.put(`/api/admin/user/${id}`, data);
+  return requestClient.put(`/admin/user/${id}`, data);
 }
 
 export async function deleteAdminUserApi(id: number) {
-  return requestClient.delete(`/api/admin/user/${id}`);
+  return requestClient.delete(`/admin/user/${id}`);
 }
 
 export async function updateAdminUserStatusApi(id: number, status: number) {
-  return requestClient.put(`/api/admin/user/${id}/status`, { status });
+  return requestClient.put(`/admin/user/${id}/status`, { status });
 }
 
 export async function updateAdminUserNotifyApi(
   id: number,
   balanceNotify: number,
 ) {
-  return requestClient.put(`/api/admin/user/${id}/notify`, {
+  return requestClient.put(`/admin/user/${id}/notify`, {
     balance_notify: balanceNotify,
   });
 }
 
 export async function setAdminUserBusinessApi(ids: number[]) {
-  return requestClient.post('/api/admin/user/setBusiness', { ids });
+  return requestClient.post('/admin/user/setBusiness', { ids });
 }
 
 export async function cancelAdminUserBusinessApi(ids: number[]) {
-  return requestClient.post('/api/admin/user/cancelBusiness', { ids });
+  return requestClient.post('/admin/user/cancelBusiness', { ids });
 }
 
 export async function getAdminUserTrashApi(params: UserListQuery) {
-  return requestClient.get<PagedResult<UserListItem>>('/api/admin/user/trash', {
+  return requestClient.get<PagedResult<UserListItem>>('/admin/user/trash', {
     params,
   });
 }
 
 export async function restoreAdminUserApi(id: number) {
-  return requestClient.put(`/api/admin/user/${id}/restore`);
+  return requestClient.put(`/admin/user/${id}/restore`);
 }
 
 export async function getSubjectsApi() {
-  return requestClient.get<{ list: SubjectItem[] }>('/api/admin/subject/list');
+  return requestClient.get<{ list: SubjectItem[] }>('/admin/subject/list');
 }
 
 export async function addSubjectApi(data: SubjectPayload) {
-  return requestClient.post('/api/admin/subject/add', data);
+  return requestClient.post('/admin/subject/add', data);
 }
 
 export async function updateSubjectApi(id: number, data: SubjectPayload) {
-  return requestClient.put(`/api/admin/subject/${id}`, data);
+  return requestClient.put(`/admin/subject/${id}`, data);
 }
 
 export async function getGroupsApi(params: UserListQuery) {
-  return requestClient.get<PagedResult<GroupListItem>>(
-    '/api/admin/group/list',
-    {
-      params,
-    },
-  );
+  return requestClient.get<PagedResult<GroupListItem>>('/admin/group/list', {
+    params,
+  });
 }
 
 export async function addGroupApi(data: GroupPayload) {
-  return requestClient.post('/api/admin/group/add', data);
+  return requestClient.post('/admin/group/add', data);
 }
 
 export async function updateGroupApi(id: number, data: GroupPayload) {
-  return requestClient.put(`/api/admin/group/${id}`, data);
+  return requestClient.put(`/admin/group/${id}`, data);
 }
 
 export async function deleteGroupApi(id: number) {
-  return requestClient.delete(`/api/admin/group/${id}`);
+  return requestClient.delete(`/admin/group/${id}`);
 }
 
 export async function updateGroupStatusApi(id: number, status: number) {
-  return requestClient.put(`/api/admin/group/${id}/status`, { status });
+  return requestClient.put(`/admin/group/${id}/status`, { status });
 }
 
 export async function getGroupAuthApi(id: number) {
-  return requestClient.get<GroupAuthResult>(`/api/admin/group/${id}/auth`);
+  return requestClient.get<GroupAuthResult>(`/admin/group/${id}/auth`);
 }
 
 export async function saveGroupAuthApi(id: number, menuIds: number[]) {
-  return requestClient.put(`/api/admin/group/${id}/auth`, {
+  return requestClient.put(`/admin/group/${id}/auth`, {
     menu_ids: menuIds,
   });
 }
 
 export async function getPermissionTreeApi() {
-  return requestClient.get<MenuTreeItem[]>('/api/admin/menu/tree');
+  return requestClient.get<MenuTreeItem[]>('/admin/menu/tree');
 }
 
 export async function getOperationLogsApi(params: LogQuery) {
   return requestClient.get<PagedResult<OperationLogItem>>(
-    '/api/admin/log/operation',
+    '/admin/log/operation',
     {
       params,
     },
@@ -231,15 +228,15 @@ export async function getOperationLogsApi(params: LogQuery) {
 }
 
 export async function getLoginLogsApi(params: LogQuery) {
-  return requestClient.get<PagedResult<LoginLogItem>>('/api/admin/log/login', {
+  return requestClient.get<PagedResult<LoginLogItem>>('/admin/log/login', {
     params,
   });
 }
 
 export async function getSMSConfigApi() {
-  return requestClient.get<SMSConfigResult>('/api/admin/config/sms');
+  return requestClient.get<SMSConfigResult>('/admin/config/sms');
 }
 
 export async function saveSMSConfigApi(data: SMSConfigPayload) {
-  return requestClient.put('/api/admin/config/sms', data);
+  return requestClient.put('/admin/config/sms', data);
 }
