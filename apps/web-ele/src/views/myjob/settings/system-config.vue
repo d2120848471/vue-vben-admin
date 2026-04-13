@@ -251,7 +251,10 @@ onMounted(() => {
         </template>
 
         <ElForm label-width="160px" class="max-w-3xl">
-          <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
+          <div
+            data-test="system-config-group-finance"
+            class="rounded-md border border-border bg-muted px-4 py-3 font-medium text-foreground"
+          >
             {{ groupMeta.finance.label }}
           </div>
 
@@ -275,7 +278,8 @@ onMounted(() => {
           </ElFormItem>
 
           <div
-            class="mt-8 rounded-md border border-blue-200 bg-blue-50 px-4 py-3"
+            data-test="system-config-group-integration"
+            class="mt-8 rounded-md border border-border bg-muted px-4 py-3 font-medium text-foreground"
           >
             {{ groupMeta.integration.label }}
           </div>

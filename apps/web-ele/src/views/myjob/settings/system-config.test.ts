@@ -185,6 +185,15 @@ function setInputValue(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function findGroupBlock(root: HTMLElement, name: string) {
+  const block = root.querySelector(`[data-test="${name}"]`);
+  expect(block, `未找到分组块 ${name}`).toBeTruthy();
+  if (!block) {
+    throw new Error(`missing group block ${name}`);
+  }
+  return block as HTMLElement;
+}
+
 describe('system config page', () => {
   const mountedRoots: Array<{ unmount: () => void }> = [];
 
@@ -254,6 +263,28 @@ describe('system config page', () => {
     expect(page.root.textContent).toContain(
       '最近更新时间：2026-04-13 12:32:00',
     );
+  });
+
+  it('renders group headers with semantic theme tokens', async () => {
+    const page = await renderPage();
+    mountedRoots.push(page);
+
+    const financeGroup = findGroupBlock(
+      page.root,
+      'system-config-group-finance',
+    );
+    const integrationGroup = findGroupBlock(
+      page.root,
+      'system-config-group-integration',
+    );
+
+    for (const group of [financeGroup, integrationGroup]) {
+      expect(group.className).toContain('border-border');
+      expect(group.className).toContain('bg-muted');
+      expect(group.className).toContain('text-foreground');
+      expect(group.className).not.toContain('border-blue-200');
+      expect(group.className).not.toContain('bg-blue-50');
+    }
   });
 
   it('submits the fixed form fields as grouped system settings', async () => {
