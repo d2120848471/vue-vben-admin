@@ -283,6 +283,43 @@ export interface ProductTemplateValidateTypeItem {
   title: string;
 }
 
+export interface PurchaseLimitStrategyListItem {
+  created_at: string;
+  id: number;
+  limit_nums: number;
+  limit_times: number;
+  limit_type: number;
+  limit_type_label: string;
+  name: string;
+  period: number;
+  period_type: number;
+  period_type_label: string;
+  status: number;
+}
+
+export interface PurchaseLimitStrategyListQuery extends UserListQuery {
+  keyword?: string;
+}
+
+export interface PurchaseLimitStrategyPayload {
+  limit_nums: number;
+  limit_times: number;
+  limit_type: number;
+  name: string;
+  period: number;
+  period_type: number;
+}
+
+export interface PurchaseLimitStrategyEnumItem {
+  id: number;
+  title: string;
+}
+
+export interface PurchaseLimitStrategyEnumsResult {
+  limit_types: PurchaseLimitStrategyEnumItem[];
+  period_types: PurchaseLimitStrategyEnumItem[];
+}
+
 // 后端这批状态/授权接口统一切到了 PATCH，这里集中走底层 request。
 function patchApi<T = unknown>(url: string, data?: unknown) {
   return requestClient.request<T>(url, {
@@ -568,4 +605,45 @@ export async function batchDeleteProductTemplateApi(ids: number[]) {
   return requestClient.delete('/admin/product-templates', {
     data: { ids },
   });
+}
+
+export async function getPurchaseLimitStrategyListApi(
+  params: PurchaseLimitStrategyListQuery,
+) {
+  return requestClient.get<PagedResult<PurchaseLimitStrategyListItem>>(
+    '/admin/purchase-limit-strategies',
+    {
+      params,
+    },
+  );
+}
+
+export async function getPurchaseLimitStrategyEnumsApi() {
+  return requestClient.get<PurchaseLimitStrategyEnumsResult>(
+    '/admin/purchase-limit-strategies/enums',
+  );
+}
+
+export async function addPurchaseLimitStrategyApi(
+  data: PurchaseLimitStrategyPayload,
+) {
+  return requestClient.post('/admin/purchase-limit-strategies', data);
+}
+
+export async function updatePurchaseLimitStrategyApi(
+  id: number,
+  data: PurchaseLimitStrategyPayload,
+) {
+  return requestClient.put(`/admin/purchase-limit-strategies/${id}`, data);
+}
+
+export async function updatePurchaseLimitStrategyStatusApi(
+  id: number,
+  status: number,
+) {
+  return patchApi(`/admin/purchase-limit-strategies/${id}/status`, { status });
+}
+
+export async function deletePurchaseLimitStrategyApi(id: number) {
+  return requestClient.delete(`/admin/purchase-limit-strategies/${id}`);
 }

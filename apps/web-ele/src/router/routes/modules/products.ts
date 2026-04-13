@@ -3,7 +3,12 @@ import type { RouteRecordRaw } from 'vue-router';
 const routes: RouteRecordRaw[] = [
   {
     meta: {
-      authority: ['product.brand', 'product.industry', 'product.template'],
+      authority: [
+        'product.brand',
+        'product.industry',
+        'product.template',
+        'product.purchase_limit',
+      ],
       icon: 'lucide:package',
       order: 20,
       title: '商品管理',
@@ -37,6 +42,16 @@ const routes: RouteRecordRaw[] = [
         },
         name: 'ProductRechargeTemplates',
         path: '/products/templates',
+      },
+      {
+        component: () =>
+          import('#/views/myjob/products/purchase-limits/index.vue'),
+        meta: {
+          authority: ['product.purchase_limit'],
+          title: '商品购买数量限制策略',
+        },
+        name: 'ProductPurchaseLimits',
+        path: '/products/purchase-limits',
       },
     ],
   },

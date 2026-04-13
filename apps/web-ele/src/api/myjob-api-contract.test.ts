@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import * as adminApiModule from '#/api/modules/admin';
+
 import {
   loginApi,
   logoutApi,
@@ -467,6 +469,95 @@ describe('myjob api contract', () => {
       {
         data: { ids: [21, 22] },
       },
+    );
+  });
+
+  it('uses the purchase limit strategy endpoints', async () => {
+    requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
+    requestClientMock.get.mockResolvedValueOnce({
+      limit_types: [{ id: 1, title: '同一会员' }],
+      period_types: [{ id: 1, title: '按天' }],
+    });
+    requestClientMock.post.mockResolvedValueOnce({ id: 31 });
+    requestClientMock.put.mockResolvedValueOnce(undefined);
+    requestClientMock.request.mockResolvedValueOnce(undefined);
+    requestClientMock.delete.mockResolvedValueOnce(undefined);
+
+    await (adminApiModule as any).getPurchaseLimitStrategyListApi({
+      keyword: '一天一号',
+      page: 1,
+      page_size: 20,
+    });
+    await (adminApiModule as any).getPurchaseLimitStrategyEnumsApi();
+    await (adminApiModule as any).addPurchaseLimitStrategyApi({
+      limit_nums: 2,
+      limit_times: 2,
+      limit_type: 2,
+      name: '一天一号两次',
+      period: 1,
+      period_type: 1,
+    });
+    await (adminApiModule as any).updatePurchaseLimitStrategyApi(31, {
+      limit_nums: 0,
+      limit_times: 5,
+      limit_type: 2,
+      name: '三分钟一号五次',
+      period: 3,
+      period_type: 2,
+    });
+    await (adminApiModule as any).updatePurchaseLimitStrategyStatusApi(31, 0);
+    await (adminApiModule as any).deletePurchaseLimitStrategyApi(31);
+
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      1,
+      '/admin/purchase-limit-strategies',
+      {
+        params: {
+          keyword: '一天一号',
+          page: 1,
+          page_size: 20,
+        },
+      },
+    );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      2,
+      '/admin/purchase-limit-strategies/enums',
+    );
+    expect(requestClientMock.post).toHaveBeenNthCalledWith(
+      1,
+      '/admin/purchase-limit-strategies',
+      {
+        limit_nums: 2,
+        limit_times: 2,
+        limit_type: 2,
+        name: '一天一号两次',
+        period: 1,
+        period_type: 1,
+      },
+    );
+    expect(requestClientMock.put).toHaveBeenNthCalledWith(
+      1,
+      '/admin/purchase-limit-strategies/31',
+      {
+        limit_nums: 0,
+        limit_times: 5,
+        limit_type: 2,
+        name: '三分钟一号五次',
+        period: 3,
+        period_type: 2,
+      },
+    );
+    expect(requestClientMock.request).toHaveBeenNthCalledWith(
+      1,
+      '/admin/purchase-limit-strategies/31/status',
+      {
+        data: { status: 0 },
+        method: 'PATCH',
+      },
+    );
+    expect(requestClientMock.delete).toHaveBeenNthCalledWith(
+      1,
+      '/admin/purchase-limit-strategies/31',
     );
   });
 

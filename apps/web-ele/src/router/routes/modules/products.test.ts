@@ -7,7 +7,12 @@ describe('products routes', () => {
     expect(routes).toEqual([
       {
         meta: {
-          authority: ['product.brand', 'product.industry', 'product.template'],
+          authority: [
+            'product.brand',
+            'product.industry',
+            'product.template',
+            'product.purchase_limit',
+          ],
           icon: 'lucide:package',
           order: 20,
           title: '商品管理',
@@ -41,6 +46,15 @@ describe('products routes', () => {
             },
             name: 'ProductRechargeTemplates',
             path: '/products/templates',
+          },
+          {
+            component: expect.any(Function),
+            meta: {
+              authority: ['product.purchase_limit'],
+              title: '商品购买数量限制策略',
+            },
+            name: 'ProductPurchaseLimits',
+            path: '/products/purchase-limits',
           },
         ],
       },
