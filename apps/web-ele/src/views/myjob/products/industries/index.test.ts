@@ -59,6 +59,16 @@ vi.mock('@vben/stores', () => ({
   }),
 }));
 
+vi.mock('@vben/icons', () => ({
+  createIconifyIcon: (name: string) =>
+    defineComponent({
+      name: `IconStub-${name}`,
+      setup() {
+        return () => h('span', { 'data-test-icon': name });
+      },
+    }),
+}));
+
 vi.mock('#/adapter/vxe-table', () => ({
   useVbenVxeGrid: () => {
     const Grid = defineComponent({
@@ -69,7 +79,15 @@ vi.mock('#/adapter/vxe-table', () => ({
             slots['toolbar-actions']?.(),
             ...fixtures.rows.map((row) =>
               h('div', { 'data-row-id': String(row.id) }, [
-                h('div', slots.actions?.({ row })),
+                h('div', { 'data-cell': 'sort-actions' }, [
+                  slots.sortActions?.({ row }),
+                ]),
+                h('div', { 'data-cell': 'manage-actions' }, [
+                  slots.manageActions?.({ row }),
+                ]),
+                h('div', { 'data-cell': 'actions' }, [
+                  slots.actions?.({ row }),
+                ]),
               ]),
             ),
           ]);
@@ -210,10 +228,48 @@ vi.mock('element-plus', () => {
     },
   });
 
+  const ElOption = defineComponent({
+    name: 'ElOptionStub',
+    props: {
+      label: {
+        default: '',
+        type: String,
+      },
+      value: {
+        default: '',
+        type: [Number, String],
+      },
+    },
+    setup(props) {
+      return () =>
+        h(
+          'div',
+          {
+            'data-test': 'select-option',
+            'data-value': String(props.value),
+          },
+          props.label,
+        );
+    },
+  });
+
   const ElTag = defineComponent({
     name: 'ElTagStub',
     setup(_, { slots }) {
       return () => h('span', slots.default?.());
+    },
+  });
+
+  const ElTooltip = defineComponent({
+    name: 'ElTooltipStub',
+    props: {
+      content: {
+        default: '',
+        type: String,
+      },
+    },
+    setup(_, { slots }) {
+      return () => h('div', slots.default?.());
     },
   });
 
@@ -254,8 +310,10 @@ vi.mock('element-plus', () => {
     ElMessageBox: {
       confirm: vi.fn().mockResolvedValue(undefined),
     },
+    ElOption,
     ElSelect,
     ElTag,
+    ElTooltip,
   };
 });
 
@@ -268,25 +326,6 @@ async function renderPage() {
   document.body.append(root);
 
   const app = createApp(IndustriesPage);
-  app.component(
-    'ElOption',
-    defineComponent({
-      name: 'ElOptionStub',
-      props: {
-        label: {
-          default: '',
-          type: String,
-        },
-        value: {
-          default: '',
-          type: [Number, String],
-        },
-      },
-      setup(props) {
-        return () => h('div', `${props.label}:${String(props.value)}`);
-      },
-    }),
-  );
   app.directive('loading', {});
   app.config.errorHandler = () => {};
   app.mount(root);
@@ -309,9 +348,27 @@ function findRowButton(root: HTMLElement, rowId: number, label: string) {
   }
 
   const button = [...row.querySelectorAll('button')].find(
+    (candidate) =>
+      candidate.textContent?.trim() === label ||
+      candidate.getAttribute('title') === label,
+  );
+  expect(button, `未找到 ${label} 按钮`).toBeTruthy();
+  return button as HTMLButtonElement;
+}
+
+function findButton(root: HTMLElement, label: string) {
+  const button = [...root.querySelectorAll('button')].find(
     (candidate) => candidate.textContent?.trim() === label,
   );
   expect(button, `未找到 ${label} 按钮`).toBeTruthy();
+  return button as HTMLButtonElement;
+}
+
+function findButtonByTitle(root: HTMLElement, title: string) {
+  const button = [...root.querySelectorAll('button')].find(
+    (candidate) => candidate.getAttribute('title') === title,
+  );
+  expect(button, `未找到 ${title} 图标按钮`).toBeTruthy();
   return button as HTMLButtonElement;
 }
 
@@ -331,6 +388,88 @@ describe('industries page', () => {
     while (mountedRoots.length > 0) {
       mountedRoots.pop()?.unmount();
     }
+  });
+
+  it('renders selector options in the create dialog from brand-selector results', async () => {
+    apiMocks.getBrandSelectorApi.mockResolvedValueOnce({
+      list: [{ icon: '', id: 101, name: '腾讯视频' }],
+    });
+
+    const view = await renderPage();
+    mountedRoots.push(view);
+
+    findButton(view.root, '新增行业').click();
+    await flushPromises();
+    await nextTick();
+
+    expect(view.root.textContent).toContain('腾讯视频');
+  });
+
+  it('renders selector options in the relation drawer from brand-selector results', async () => {
+    apiMocks.getBrandSelectorApi.mockResolvedValueOnce({
+      list: [{ icon: '', id: 202, name: '优酷视频' }],
+    });
+    apiMocks.getIndustryRelationBrandsApi.mockResolvedValueOnce({ list: [] });
+
+    const view = await renderPage();
+    mountedRoots.push(view);
+
+    findRowButton(view.root, 1, '关联品牌').click();
+    await flushPromises();
+    await nextTick();
+
+    expect(view.root.textContent).toContain('优酷视频');
+  });
+
+  it('renders list row actions as icon buttons with split sort and manage groups', async () => {
+    const view = await renderPage();
+    mountedRoots.push(view);
+
+    const row = view.root.querySelector('[data-row-id="1"]');
+    expect(row).toBeTruthy();
+    if (!row) {
+      throw new Error('missing row 1');
+    }
+
+    expect(
+      row.querySelector('[data-cell="sort-actions"] button[title="置顶"]'),
+    ).toBeTruthy();
+    expect(
+      row.querySelector('[data-cell="sort-actions"] button[title="下移"]'),
+    ).toBeTruthy();
+    expect(
+      row.querySelector('[data-cell="manage-actions"] button[title="编辑"]'),
+    ).toBeTruthy();
+    expect(
+      row.querySelector(
+        '[data-cell="manage-actions"] button[title="关联品牌"]',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('renders relation drawer actions as icon buttons', async () => {
+    apiMocks.getIndustryRelationBrandsApi.mockResolvedValueOnce({
+      list: [
+        {
+          brand_icon: '',
+          brand_id: 201,
+          brand_name: '爱奇艺',
+          id: 9,
+          sort: 1,
+        },
+      ],
+    });
+
+    const view = await renderPage();
+    mountedRoots.push(view);
+
+    findRowButton(view.root, 1, '关联品牌').click();
+    await flushPromises();
+    await nextTick();
+
+    expect(findButtonByTitle(view.root, '置顶')).toBeTruthy();
+    expect(findButtonByTitle(view.root, '下移')).toBeTruthy();
+    expect(findButtonByTitle(view.root, '移除')).toBeTruthy();
   });
 
   it('keeps the edit dialog closed when loading a different industry fails', async () => {

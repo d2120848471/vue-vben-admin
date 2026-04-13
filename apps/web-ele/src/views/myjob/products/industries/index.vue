@@ -14,6 +14,8 @@ import type {
 import { computed, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
+import { useAppConfig } from '@vben/hooks';
+import { createIconifyIcon } from '@vben/icons';
 import { useAccessStore } from '@vben/stores';
 
 import {
@@ -27,8 +29,10 @@ import {
   ElInput,
   ElMessage,
   ElMessageBox,
+  ElOption,
   ElSelect,
   ElTag,
+  ElTooltip,
 } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
@@ -55,7 +59,9 @@ import {
 import {
   appendIndustrySelectorOptions,
   getAvailableBrandSortActions,
+  getBrandSortActionItems,
   relationIdsFromItems,
+  resolveProductImageUrl,
 } from '../shared';
 
 interface IndustryDialogState {
@@ -63,6 +69,21 @@ interface IndustryDialogState {
   name: string;
 }
 
+const IndustrySortTopIcon = createIconifyIcon('lucide:chevrons-up');
+const IndustrySortUpIcon = createIconifyIcon('lucide:arrow-up');
+const IndustrySortDownIcon = createIconifyIcon('lucide:arrow-down');
+const IndustrySortBottomIcon = createIconifyIcon('lucide:chevrons-down');
+const IndustryEditIcon = createIconifyIcon('lucide:square-pen');
+const IndustryRelationIcon = createIconifyIcon('lucide:link-2');
+const IndustryDeleteIcon = createIconifyIcon('lucide:trash-2');
+const INDUSTRY_SORT_ICON_MAP = {
+  bottom: IndustrySortBottomIcon,
+  down: IndustrySortDownIcon,
+  top: IndustrySortTopIcon,
+  up: IndustrySortUpIcon,
+} as const;
+
+const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 const accessStore = useAccessStore();
 const canManage = computed(() =>
   accessStore.accessCodes.includes('product.industry'),
@@ -303,11 +324,19 @@ function getIndustrySortState(row: IndustryListItem) {
   return getAvailableBrandSortActions(index, industryRows.value.length);
 }
 
+function getIndustrySortButtons(row: IndustryListItem) {
+  return getBrandSortActionItems(getIndustrySortState(row));
+}
+
 function getRelationSortState(row: IndustryRelationBrandItem) {
   const index = relationRows.value.findIndex(
     (item) => item.brand_id === row.brand_id,
   );
   return getAvailableBrandSortActions(index, relationRows.value.length);
+}
+
+function getRelationSortButtons(row: IndustryRelationBrandItem) {
+  return getBrandSortActionItems(getRelationSortState(row));
 }
 
 const availableRelationOptions = computed(() => {
@@ -351,11 +380,18 @@ const [Grid, gridApi] = useVbenVxeGrid<IndustryListItem>({
         minWidth: 180,
       },
       {
-        field: 'actions',
+        field: 'sort_actions',
         fixed: 'right',
-        minWidth: 420,
-        slots: { default: 'actions' },
-        title: '操作',
+        minWidth: 160,
+        slots: { default: 'sortActions' },
+        title: '排序',
+      },
+      {
+        field: 'manage_actions',
+        fixed: 'right',
+        minWidth: 180,
+        slots: { default: 'manageActions' },
+        title: '管理',
       },
     ],
     pagerConfig: {},
@@ -388,6 +424,10 @@ const [Grid, gridApi] = useVbenVxeGrid<IndustryListItem>({
 const dialogTitle = computed(() =>
   editingIndustry.value ? '编辑行业' : '新增行业',
 );
+
+function resolveImageUrl(url: string) {
+  return resolveProductImageUrl(url, apiURL);
+}
 </script>
 
 <template>
@@ -405,68 +445,81 @@ const dialogTitle = computed(() =>
         </ElTag>
       </template>
 
-      <template #actions="{ row }">
-        <div class="flex flex-wrap items-center justify-center gap-2">
-          <ElButton
-            v-if="canManage"
-            link
-            type="primary"
-            @click="openEditDialog(row)"
+      <template #sortActions="{ row }">
+        <div
+          v-if="canManage"
+          class="industry-action-group industry-action-group--sort"
+        >
+          <ElTooltip
+            v-for="action in getIndustrySortButtons(row)"
+            :key="action.action"
+            :content="action.tooltip"
+            placement="top"
           >
-            编辑
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="warning"
-            @click="openRelationDrawer(row)"
-          >
-            关联品牌
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="primary"
-            :disabled="!getIndustrySortState(row).top"
-            @click="handleSortIndustry(row, 'top')"
-          >
-            置顶
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="primary"
-            :disabled="!getIndustrySortState(row).up"
-            @click="handleSortIndustry(row, 'up')"
-          >
-            上移
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="primary"
-            :disabled="!getIndustrySortState(row).down"
-            @click="handleSortIndustry(row, 'down')"
-          >
-            下移
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="primary"
-            :disabled="!getIndustrySortState(row).bottom"
-            @click="handleSortIndustry(row, 'bottom')"
-          >
-            置底
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="danger"
-            @click="handleDelete(row)"
-          >
-            删除
-          </ElButton>
+            <span class="industry-action-button__wrapper">
+              <ElButton
+                circle
+                plain
+                class="industry-action-button industry-action-button--sort"
+                :class="{ 'industry-action-button--disabled': action.disabled }"
+                :disabled="action.disabled"
+                :title="action.tooltip"
+                @click="handleSortIndustry(row, action.action)"
+              >
+                <component
+                  :is="INDUSTRY_SORT_ICON_MAP[action.action]"
+                  class="size-4"
+                />
+              </ElButton>
+            </span>
+          </ElTooltip>
+        </div>
+      </template>
+
+      <template #manageActions="{ row }">
+        <div
+          v-if="canManage"
+          class="industry-action-group industry-action-group--manage"
+        >
+          <ElTooltip content="编辑" placement="top">
+            <span class="industry-action-button__wrapper">
+              <ElButton
+                circle
+                plain
+                class="industry-action-button industry-action-button--edit"
+                title="编辑"
+                @click="openEditDialog(row)"
+              >
+                <IndustryEditIcon class="size-4" />
+              </ElButton>
+            </span>
+          </ElTooltip>
+          <ElTooltip content="关联品牌" placement="top">
+            <span class="industry-action-button__wrapper">
+              <ElButton
+                circle
+                plain
+                class="industry-action-button industry-action-button--relation"
+                title="关联品牌"
+                @click="openRelationDrawer(row)"
+              >
+                <IndustryRelationIcon class="size-4" />
+              </ElButton>
+            </span>
+          </ElTooltip>
+          <ElTooltip content="删除" placement="top">
+            <span class="industry-action-button__wrapper">
+              <ElButton
+                circle
+                plain
+                class="industry-action-button industry-action-button--delete"
+                title="删除"
+                @click="handleDelete(row)"
+              >
+                <IndustryDeleteIcon class="size-4" />
+              </ElButton>
+            </span>
+          </ElTooltip>
         </div>
       </template>
     </Grid>
@@ -497,7 +550,7 @@ const dialogTitle = computed(() =>
               (keyword: string) => loadSelectorOptions(keyword, selectorOptions)
             "
           >
-            <el-option
+            <ElOption
               v-for="item in selectorOptions"
               :key="item.id"
               :label="item.name"
@@ -545,7 +598,7 @@ const dialogTitle = computed(() =>
               placeholder="搜索可关联的一级品牌"
               :remote-method="loadRelationSelectorOptions"
             >
-              <el-option
+              <ElOption
                 v-for="item in availableRelationOptions"
                 :key="item.id"
                 :label="item.name"
@@ -589,8 +642,8 @@ const dialogTitle = computed(() =>
             <div class="flex items-center gap-3">
               <ElImage
                 v-if="item.brand_icon"
-                :preview-src-list="[item.brand_icon]"
-                :src="item.brand_icon"
+                :preview-src-list="[resolveImageUrl(item.brand_icon)]"
+                :src="resolveImageUrl(item.brand_icon)"
                 fit="cover"
                 class="h-12 w-12 rounded-md"
               />
@@ -609,42 +662,49 @@ const dialogTitle = computed(() =>
                 </div>
               </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <ElButton
-                link
-                type="primary"
-                :disabled="!getRelationSortState(item).top"
-                @click="handleSortRelation(item, 'top')"
-              >
-                置顶
-              </ElButton>
-              <ElButton
-                link
-                type="primary"
-                :disabled="!getRelationSortState(item).up"
-                @click="handleSortRelation(item, 'up')"
-              >
-                上移
-              </ElButton>
-              <ElButton
-                link
-                type="primary"
-                :disabled="!getRelationSortState(item).down"
-                @click="handleSortRelation(item, 'down')"
-              >
-                下移
-              </ElButton>
-              <ElButton
-                link
-                type="primary"
-                :disabled="!getRelationSortState(item).bottom"
-                @click="handleSortRelation(item, 'bottom')"
-              >
-                置底
-              </ElButton>
-              <ElButton link type="danger" @click="handleDeleteRelation(item)">
-                移除
-              </ElButton>
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="industry-action-group industry-action-group--sort">
+                <ElTooltip
+                  v-for="action in getRelationSortButtons(item)"
+                  :key="action.action"
+                  :content="action.tooltip"
+                  placement="top"
+                >
+                  <span class="industry-action-button__wrapper">
+                    <ElButton
+                      circle
+                      plain
+                      class="industry-action-button industry-action-button--sort"
+                      :class="{
+                        'industry-action-button--disabled': action.disabled,
+                      }"
+                      :disabled="action.disabled"
+                      :title="action.tooltip"
+                      @click="handleSortRelation(item, action.action)"
+                    >
+                      <component
+                        :is="INDUSTRY_SORT_ICON_MAP[action.action]"
+                        class="size-4"
+                      />
+                    </ElButton>
+                  </span>
+                </ElTooltip>
+              </div>
+              <div class="industry-action-group industry-action-group--manage">
+                <ElTooltip content="移除" placement="top">
+                  <span class="industry-action-button__wrapper">
+                    <ElButton
+                      circle
+                      plain
+                      class="industry-action-button industry-action-button--delete"
+                      title="移除"
+                      @click="handleDeleteRelation(item)"
+                    >
+                      <IndustryDeleteIcon class="size-4" />
+                    </ElButton>
+                  </span>
+                </ElTooltip>
+              </div>
             </div>
           </div>
         </div>
@@ -652,3 +712,40 @@ const dialogTitle = computed(() =>
     </ElDrawer>
   </Page>
 </template>
+
+<style scoped>
+.industry-action-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.industry-action-button__wrapper {
+  display: inline-flex;
+}
+
+.industry-action-button {
+  color: rgb(148 163 184 / 96%);
+}
+
+.industry-action-button--sort {
+  color: rgb(96 165 250 / 92%);
+}
+
+.industry-action-button--edit {
+  color: rgb(45 212 191 / 96%);
+}
+
+.industry-action-button--relation {
+  color: rgb(250 204 21 / 96%);
+}
+
+.industry-action-button--delete {
+  color: rgb(251 113 133 / 96%);
+}
+
+.industry-action-button--disabled {
+  color: rgb(100 116 139 / 60%);
+}
+</style>

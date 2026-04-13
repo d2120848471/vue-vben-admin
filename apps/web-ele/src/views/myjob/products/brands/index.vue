@@ -17,6 +17,8 @@ import type {
 import { computed, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
+import { useAppConfig } from '@vben/hooks';
+import { createIconifyIcon } from '@vben/icons';
 import { useAccessStore } from '@vben/stores';
 
 import {
@@ -30,6 +32,7 @@ import {
   ElMessageBox,
   ElSwitch,
   ElTag,
+  ElTooltip,
   ElUpload,
 } from 'element-plus';
 
@@ -54,8 +57,16 @@ import {
 } from '../../shared';
 import {
   buildBrandTree,
+  findBrandTreeNode,
   getAvailableBrandSortActions,
+  getBrandManageActionVisibility,
+  getBrandSortActionItems,
+  getBrandTreeDepth,
+  getBrandTreeNodePresentation,
+  getBrandTreePath,
   mergeBrandChildren,
+  resolveProductImageUrl,
+  shouldShowBrandAssetFields,
 } from '../shared';
 
 interface BrandDialogState {
@@ -69,7 +80,21 @@ interface BrandDialogState {
 }
 
 const IMAGE_ACCEPT = 'image/png,image/jpeg,image/jpg,image/webp';
+const BrandSortTopIcon = createIconifyIcon('lucide:chevrons-up');
+const BrandSortUpIcon = createIconifyIcon('lucide:arrow-up');
+const BrandSortDownIcon = createIconifyIcon('lucide:arrow-down');
+const BrandSortBottomIcon = createIconifyIcon('lucide:chevrons-down');
+const BrandCreateIcon = createIconifyIcon('lucide:plus');
+const BrandEditIcon = createIconifyIcon('lucide:square-pen');
+const BrandDeleteIcon = createIconifyIcon('lucide:trash-2');
+const BRAND_SORT_ICON_MAP = {
+  bottom: BrandSortBottomIcon,
+  down: BrandSortDownIcon,
+  top: BrandSortTopIcon,
+  up: BrandSortUpIcon,
+} as const;
 
+const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 const accessStore = useAccessStore();
 const canManage = computed(() =>
   accessStore.accessCodes.includes('product.brand'),
@@ -111,8 +136,7 @@ function resolveParentName(parentId: number) {
     return '一级品牌';
   }
   return (
-    brandRoots.value.find((item) => item.id === parentId)?.name ??
-    `父品牌 #${parentId}`
+    findBrandTreeNode(brandRoots.value, parentId)?.name ?? `父品牌 #${parentId}`
   );
 }
 
@@ -216,26 +240,49 @@ function clearUploadedField(field: 'credential_image' | 'icon') {
 }
 
 async function refreshParentBranch(parentId: number) {
-  const parentRow = brandRoots.value.find((item) => item.id === parentId);
+  const parentRow = findBrandTreeNode(brandRoots.value, parentId);
   if (!parentRow) {
     await gridApi.reload();
     return;
   }
 
+  const expandPathIds = getBrandTreePath(brandRoots.value, parentId) ?? [
+    parentId,
+  ];
+  const expandedTreeRows =
+    (gridApi.grid?.getTreeExpandRecords?.() as BrandListItem[] | undefined) ??
+    [];
+  const expandedDescendantIds = expandedTreeRows
+    .map((row) => row.id)
+    .filter((id) => {
+      const path = getBrandTreePath(brandRoots.value, id);
+      return path ? path.includes(parentId) : false;
+    });
   const result = await getBrandChildrenApi(parentId);
   const children = buildBrandTree(result.list ?? []);
   childCache[parentId] = children;
-  parentRow.children = children;
-  parentRow.has_children = children.length > 0;
-  brandRoots.value = mergeBrandChildren(brandRoots.value, parentId, children);
+  const nextRoots = mergeBrandChildren(brandRoots.value, parentId, children);
+  const expandIds = [
+    ...new Set([...expandPathIds, ...expandedDescendantIds]),
+  ].toSorted(
+    (leftId, rightId) =>
+      (getBrandTreeDepth(nextRoots, leftId) ?? 0) -
+      (getBrandTreeDepth(nextRoots, rightId) ?? 0),
+  );
+  brandRoots.value = nextRoots;
 
-  if (gridApi.grid?.loadTreeChildren) {
-    await gridApi.grid.loadTreeChildren(parentRow, children);
-  }
+  // 子级操作后直接重载当前树数据，避免只更新 lazy children 缓存时出现行引用不同步。
+  await (gridApi.grid?.reloadData
+    ? gridApi.grid.reloadData(nextRoots)
+    : gridApi.reload());
 
-  const expanded = gridApi.grid?.isTreeExpandByRow?.(parentRow) ?? false;
-  if (expanded) {
-    await gridApi.grid?.setTreeExpand?.(parentRow, children.length > 0);
+  for (const rowId of expandIds) {
+    const currentRow =
+      gridApi.grid?.getRowById?.(rowId) ?? findBrandTreeNode(nextRoots, rowId);
+    if (!currentRow) {
+      continue;
+    }
+    await gridApi.grid?.setTreeExpand?.(currentRow, true);
   }
 }
 
@@ -251,7 +298,7 @@ async function submitDialog() {
   try {
     dialogLoading.value = true;
 
-    // 品牌弹窗同时覆盖一级和二级两种场景，请求体只在新增/编辑时切分一次。
+    // 品牌弹窗同时覆盖一级到三级场景，请求体只在新增/编辑时切分一次。
     if (editingBrand.value) {
       await updateBrandApi(editingBrand.value.id, buildUpdatePayload());
       await (editingBrand.value.parent_id === 0
@@ -264,7 +311,7 @@ async function submitDialog() {
         ? gridApi.reload()
         : refreshParentBranch(dialogForm.parent_id));
       ElMessage.success(
-        dialogForm.parent_id === 0 ? '一级品牌已新增' : '二级品牌已新增',
+        `${getCreateDialogLevelLabel(dialogForm.parent_id)}已新增`,
       );
     }
 
@@ -308,6 +355,43 @@ function getSiblingAvailability(row: BrandListItem) {
   return getAvailableBrandSortActions(index, siblings.length);
 }
 
+function getBrandRowClassName({ row }: { row: BrandListItem }) {
+  return row.parent_id === 0
+    ? 'myjob-brand-row myjob-brand-row--root'
+    : 'myjob-brand-row myjob-brand-row--child';
+}
+
+function getTreeNodeMeta(level = 0) {
+  return getBrandTreeNodePresentation(level);
+}
+
+function getSortActionButtons(row: BrandListItem) {
+  return getBrandSortActionItems(getSiblingAvailability(row));
+}
+
+function getBrandDepth(row: BrandListItem) {
+  if (row.parent_id === 0) {
+    return 1;
+  }
+  return getBrandTreeDepth(brandRoots.value, row.id) ?? 2;
+}
+
+function getManageActionState(row: BrandListItem) {
+  return getBrandManageActionVisibility(getBrandDepth(row));
+}
+
+function getBrandInitial(name: string) {
+  return name.trim().slice(0, 1) || '品';
+}
+
+function getCreateDialogLevelLabel(parentId: number) {
+  if (parentId === 0) {
+    return '一级品牌';
+  }
+  const parentDepth = getBrandTreeDepth(brandRoots.value, parentId) ?? 1;
+  return getBrandTreeNodePresentation(parentDepth).levelLabel;
+}
+
 const [Grid, gridApi] = useVbenVxeGrid<BrandListItem>({
   formOptions: {
     schema: [
@@ -321,27 +405,17 @@ const [Grid, gridApi] = useVbenVxeGrid<BrandListItem>({
       },
     ],
   },
-  gridClass: MYJOB_GRID_CLASS,
+  gridClass: `${MYJOB_GRID_CLASS} myjob-brand-grid`,
   gridOptions: {
     columns: [
       { field: 'id', title: 'ID', width: 80 },
       {
         field: 'name',
         title: '品牌名称',
-        minWidth: 220,
+        minWidth: 420,
+        slots: { default: 'name' },
+        showOverflow: false,
         treeNode: true,
-      },
-      {
-        field: 'parent_id',
-        title: '层级',
-        minWidth: 100,
-        slots: { default: 'level' },
-      },
-      {
-        field: 'icon',
-        title: '图标',
-        minWidth: 100,
-        slots: { default: 'icon' },
       },
       { field: 'goods_count', title: '商品数', width: 100 },
       {
@@ -358,11 +432,18 @@ const [Grid, gridApi] = useVbenVxeGrid<BrandListItem>({
         minWidth: 180,
       },
       {
-        field: 'actions',
+        field: 'sort_actions',
         fixed: 'right',
-        minWidth: 360,
-        slots: { default: 'actions' },
-        title: '操作',
+        slots: { default: 'sortActions' },
+        title: '排序',
+        width: 176,
+      },
+      {
+        field: 'manage_actions',
+        fixed: 'right',
+        slots: { default: 'manageActions' },
+        title: '管理',
+        width: 142,
       },
     ],
     pagerConfig: {},
@@ -385,6 +466,7 @@ const [Grid, gridApi] = useVbenVxeGrid<BrandListItem>({
         },
       },
     },
+    rowClassName: getBrandRowClassName,
     toolbarConfig: {
       refresh: true,
       search: true,
@@ -418,8 +500,15 @@ const dialogTitle = computed(() => {
   if (editingBrand.value) {
     return '编辑品牌';
   }
-  return dialogForm.parent_id === 0 ? '新增一级品牌' : '新增二级品牌';
+  return `新增${getCreateDialogLevelLabel(dialogForm.parent_id)}`;
 });
+const showBrandAssetFields = computed(() =>
+  shouldShowBrandAssetFields(dialogForm.parent_id),
+);
+
+function resolveImageUrl(url: string) {
+  return resolveProductImageUrl(url, apiURL);
+}
 </script>
 
 <template>
@@ -431,21 +520,74 @@ const dialogTitle = computed(() => {
         </ElButton>
       </template>
 
-      <template #level="{ row }">
-        <ElTag :type="row.parent_id === 0 ? 'success' : 'warning'">
-          {{ row.parent_id === 0 ? '一级品牌' : '二级品牌' }}
-        </ElTag>
-      </template>
-
-      <template #icon="{ row }">
-        <ElImage
-          v-if="row.icon"
-          :preview-src-list="[row.icon]"
-          :src="row.icon"
-          fit="cover"
-          class="h-10 w-10 rounded-md"
-        />
-        <span v-else>--</span>
+      <template #name="{ level = 0, row }">
+        <div
+          class="brand-tree-cell"
+          :class="{
+            'brand-tree-cell--nested': !getTreeNodeMeta(level).isRoot,
+            'brand-tree-cell--root': getTreeNodeMeta(level).isRoot,
+          }"
+          :data-brand-depth="getTreeNodeMeta(level).depth"
+        >
+          <div
+            v-if="getTreeNodeMeta(level).isRoot"
+            class="brand-tree-cell__thumb"
+          >
+            <ElImage
+              v-if="row.icon"
+              :preview-src-list="[resolveImageUrl(row.icon)]"
+              :src="resolveImageUrl(row.icon)"
+              fit="cover"
+              class="brand-tree-cell__thumb-image"
+            />
+            <span
+              v-else
+              class="brand-tree-cell__thumb brand-tree-cell__thumb--placeholder"
+            >
+              {{ getBrandInitial(row.name) }}
+            </span>
+          </div>
+          <div
+            class="brand-tree-cell__content"
+            :style="{
+              '--brand-extra-indent': `${getTreeNodeMeta(level).extraIndentPx}px`,
+            }"
+          >
+            <div
+              v-if="!getTreeNodeMeta(level).isRoot"
+              class="brand-tree-cell__branch"
+              aria-hidden="true"
+            >
+              <span class="brand-tree-cell__branch-line"></span>
+              <span class="brand-tree-cell__branch-node"></span>
+            </div>
+            <div class="brand-tree-cell__text">
+              <div class="brand-tree-cell__header">
+                <span class="brand-tree-cell__name">
+                  {{ row.name }}
+                </span>
+                <ElTag
+                  size="small"
+                  :type="
+                    getTreeNodeMeta(level).isRoot
+                      ? 'success'
+                      : level === 1
+                        ? 'warning'
+                        : 'info'
+                  "
+                >
+                  {{ getTreeNodeMeta(level).levelLabel }}
+                </ElTag>
+              </div>
+              <p
+                v-if="getTreeNodeMeta(level).isRoot && row.description"
+                class="brand-tree-cell__description"
+              >
+                {{ row.description }}
+              </p>
+            </div>
+          </div>
+        </div>
       </template>
 
       <template #visibility="{ row }">
@@ -459,68 +601,93 @@ const dialogTitle = computed(() => {
         />
       </template>
 
-      <template #actions="{ row }">
-        <div class="flex flex-wrap items-center justify-center gap-2">
-          <ElButton
-            v-if="canManage && row.parent_id === 0"
-            link
-            type="success"
-            @click="openCreateChildDialog(row)"
+      <template #sortActions="{ row }">
+        <div
+          v-if="canManage"
+          class="brand-action-group brand-action-group--sort"
+        >
+          <ElTooltip
+            v-for="action in getSortActionButtons(row)"
+            :key="action.action"
+            :content="action.tooltip"
+            placement="top"
           >
-            新增二级
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="primary"
-            @click="openEditDialog(row)"
+            <span class="brand-action-button__wrapper">
+              <ElButton
+                circle
+                plain
+                class="brand-action-button brand-action-button--sort"
+                :class="[{ 'brand-action-button--disabled': action.disabled }]"
+                :disabled="action.disabled"
+                :title="action.tooltip"
+                @click="handleSort(row, action.action)"
+              >
+                <component
+                  :is="BRAND_SORT_ICON_MAP[action.action]"
+                  class="size-4"
+                />
+              </ElButton>
+            </span>
+          </ElTooltip>
+        </div>
+      </template>
+
+      <template #manageActions="{ row }">
+        <div
+          v-if="canManage"
+          class="brand-action-group brand-action-group--manage"
+        >
+          <ElTooltip
+            v-if="getManageActionState(row).createChild"
+            :content="getManageActionState(row).createChildText"
+            placement="top"
           >
-            编辑
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="primary"
-            :disabled="!getSiblingAvailability(row).top"
-            @click="handleSort(row, 'top')"
+            <span class="brand-action-button__wrapper">
+              <ElButton
+                circle
+                plain
+                class="brand-action-button brand-action-button--create"
+                :title="getManageActionState(row).createChildText"
+                @click="openCreateChildDialog(row)"
+              >
+                <BrandCreateIcon class="size-4" />
+              </ElButton>
+            </span>
+          </ElTooltip>
+          <ElTooltip
+            v-if="getManageActionState(row).edit"
+            content="编辑"
+            placement="top"
           >
-            置顶
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="primary"
-            :disabled="!getSiblingAvailability(row).up"
-            @click="handleSort(row, 'up')"
+            <span class="brand-action-button__wrapper">
+              <ElButton
+                circle
+                plain
+                class="brand-action-button brand-action-button--edit"
+                title="编辑"
+                @click="openEditDialog(row)"
+              >
+                <BrandEditIcon class="size-4" />
+              </ElButton>
+            </span>
+          </ElTooltip>
+          <ElTooltip
+            v-if="getManageActionState(row).delete"
+            content="删除"
+            placement="top"
           >
-            上移
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="primary"
-            :disabled="!getSiblingAvailability(row).down"
-            @click="handleSort(row, 'down')"
-          >
-            下移
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="primary"
-            :disabled="!getSiblingAvailability(row).bottom"
-            @click="handleSort(row, 'bottom')"
-          >
-            置底
-          </ElButton>
-          <ElButton
-            v-if="canManage"
-            link
-            type="danger"
-            @click="handleDelete(row)"
-          >
-            删除
-          </ElButton>
+            <span class="brand-action-button__wrapper">
+              <ElButton
+                circle
+                plain
+                class="brand-action-button brand-action-button--delete"
+                title="删除"
+                @click="handleDelete(row)"
+              >
+                <BrandDeleteIcon class="size-4" />
+              </ElButton>
+            </span>
+          </ElTooltip>
         </div>
       </template>
     </Grid>
@@ -552,7 +719,7 @@ const dialogTitle = computed(() => {
             inactive-text="隐藏"
           />
         </ElFormItem>
-        <ElFormItem label="品牌图标">
+        <ElFormItem v-if="showBrandAssetFields" label="品牌图标">
           <div class="flex w-full items-center gap-3">
             <ElUpload
               :accept="IMAGE_ACCEPT"
@@ -572,15 +739,15 @@ const dialogTitle = computed(() => {
             </ElButton>
             <ElImage
               v-if="dialogForm.icon"
-              :preview-src-list="[dialogForm.icon]"
-              :src="dialogForm.icon"
+              :preview-src-list="[resolveImageUrl(dialogForm.icon)]"
+              :src="resolveImageUrl(dialogForm.icon)"
               fit="cover"
               class="h-12 w-12 rounded-md"
             />
             <span v-else class="text-text-secondary">暂未上传</span>
           </div>
         </ElFormItem>
-        <ElFormItem label="资质图片">
+        <ElFormItem v-if="showBrandAssetFields" label="资质图片">
           <div class="flex w-full items-center gap-3">
             <ElUpload
               :accept="IMAGE_ACCEPT"
@@ -604,8 +771,8 @@ const dialogTitle = computed(() => {
             </ElButton>
             <ElImage
               v-if="dialogForm.credential_image"
-              :preview-src-list="[dialogForm.credential_image]"
-              :src="dialogForm.credential_image"
+              :preview-src-list="[resolveImageUrl(dialogForm.credential_image)]"
+              :src="resolveImageUrl(dialogForm.credential_image)"
               fit="cover"
               class="h-12 w-12 rounded-md"
             />
@@ -636,3 +803,185 @@ const dialogTitle = computed(() => {
     </ElDialog>
   </Page>
 </template>
+
+<style scoped>
+.brand-tree-cell {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  min-height: 54px;
+}
+
+.brand-tree-cell__thumb {
+  display: flex;
+  flex: 0 0 48px;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  background: rgb(15 23 42 / 48%);
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px rgb(148 163 184 / 18%);
+}
+
+.brand-tree-cell__thumb-image {
+  width: 100%;
+  height: 100%;
+}
+
+.brand-tree-cell__thumb--placeholder {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgb(219 234 254 / 92%);
+  letter-spacing: 0.08em;
+}
+
+.brand-tree-cell__content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding-left: var(--brand-extra-indent, 0);
+}
+
+.brand-tree-cell__branch {
+  position: relative;
+  flex: 0 0 28px;
+  height: 36px;
+  margin-right: 4px;
+}
+
+.brand-tree-cell__branch-line {
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  left: 11px;
+  width: 1px;
+  background: rgb(96 165 250 / 28%);
+}
+
+.brand-tree-cell__branch-node {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  width: 16px;
+  height: 1px;
+  background: rgb(96 165 250 / 42%);
+  transform: translateY(-50%);
+}
+
+.brand-tree-cell__branch-node::after {
+  position: absolute;
+  top: 50%;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  content: '';
+  background: rgb(96 165 250 / 78%);
+  border-radius: 9999px;
+  box-shadow: 0 0 0 3px rgb(59 130 246 / 14%);
+  transform: translateY(-50%);
+}
+
+.brand-tree-cell__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.brand-tree-cell__header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.brand-tree-cell__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgb(248 250 252 / 96%);
+  white-space: nowrap;
+}
+
+.brand-tree-cell--root .brand-tree-cell__name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.brand-tree-cell__description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 1.3;
+  color: rgb(191 219 254 / 74%);
+  white-space: nowrap;
+}
+
+.brand-action-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-action-button__wrapper {
+  display: inline-flex;
+}
+
+.brand-action-button {
+  color: rgb(148 163 184 / 96%);
+}
+
+.brand-action-button--sort {
+  color: rgb(96 165 250 / 92%);
+}
+
+.brand-action-button--create {
+  color: rgb(74 222 128 / 96%);
+}
+
+.brand-action-button--edit {
+  color: rgb(45 212 191 / 96%);
+}
+
+.brand-action-button--delete {
+  color: rgb(251 113 133 / 96%);
+}
+
+.brand-action-button--disabled {
+  color: rgb(100 116 139 / 60%);
+}
+
+:deep(.myjob-brand-row--root > .vxe-body--column) {
+  background: linear-gradient(
+    90deg,
+    rgb(15 23 42 / 94%),
+    rgb(30 64 175 / 20%) 22%,
+    rgb(15 23 42 / 90%)
+  );
+  border-bottom-color: rgb(96 165 250 / 20%);
+}
+
+:deep(.myjob-brand-row--root:hover > .vxe-body--column) {
+  background: linear-gradient(
+    90deg,
+    rgb(15 23 42 / 98%),
+    rgb(37 99 235 / 26%) 22%,
+    rgb(15 23 42 / 94%)
+  );
+}
+
+:deep(.myjob-brand-row--child > .vxe-body--column) {
+  background: rgb(15 23 42 / 12%);
+}
+
+:deep(.myjob-brand-row--child:hover > .vxe-body--column) {
+  background: rgb(30 41 59 / 28%);
+}
+</style>
