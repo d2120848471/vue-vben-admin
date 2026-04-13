@@ -3,7 +3,7 @@ import type { RouteRecordRaw } from 'vue-router';
 const routes: RouteRecordRaw[] = [
   {
     meta: {
-      authority: ['product.brand', 'product.industry'],
+      authority: ['product.brand', 'product.industry', 'product.template'],
       icon: 'lucide:package',
       order: 20,
       title: '商品管理',
@@ -28,6 +28,15 @@ const routes: RouteRecordRaw[] = [
         },
         name: 'ProductIndustries',
         path: '/products/industries',
+      },
+      {
+        component: () => import('#/views/myjob/products/templates/index.vue'),
+        meta: {
+          authority: ['product.template'],
+          title: '充值模板管理',
+        },
+        name: 'ProductRechargeTemplates',
+        path: '/products/templates',
       },
     ],
   },

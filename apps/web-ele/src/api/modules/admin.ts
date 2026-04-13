@@ -250,6 +250,39 @@ export interface IndustryRelationListResult {
   list: IndustryRelationBrandItem[];
 }
 
+export interface ProductTemplateListItem {
+  account_name: string;
+  created_at: string;
+  id: number;
+  is_shared: number;
+  is_shared_label: string;
+  title: string;
+  type: string;
+  type_label: string;
+  updated_at: string;
+  validate_type: number;
+  validate_type_label: string;
+}
+
+export interface ProductTemplateListQuery extends UserListQuery {
+  is_shared?: string;
+  keyword?: string;
+  type?: string;
+}
+
+export interface ProductTemplatePayload {
+  account_name: string;
+  is_shared: number;
+  title: string;
+  type: string;
+  validate_type: number;
+}
+
+export interface ProductTemplateValidateTypeItem {
+  id: number;
+  title: string;
+}
+
 // 后端这批状态/授权接口统一切到了 PATCH，这里集中走底层 request。
 function patchApi<T = unknown>(url: string, data?: unknown) {
   return requestClient.request<T>(url, {
@@ -496,5 +529,43 @@ export async function sortIndustryRelationBrandApi(
 ) {
   return patchApi(`/admin/industries/${id}/brands/${brandId}/sort`, {
     action,
+  });
+}
+
+export async function getProductTemplateListApi(
+  params: ProductTemplateListQuery,
+) {
+  return requestClient.get<PagedResult<ProductTemplateListItem>>(
+    '/admin/product-templates',
+    {
+      params,
+    },
+  );
+}
+
+export async function getProductTemplateValidateTypesApi() {
+  return requestClient.get<{ list: ProductTemplateValidateTypeItem[] }>(
+    '/admin/product-templates/validate-types',
+  );
+}
+
+export async function addProductTemplateApi(data: ProductTemplatePayload) {
+  return requestClient.post('/admin/product-templates', data);
+}
+
+export async function updateProductTemplateApi(
+  id: number,
+  data: ProductTemplatePayload,
+) {
+  return requestClient.put(`/admin/product-templates/${id}`, data);
+}
+
+export async function deleteProductTemplateApi(id: number) {
+  return requestClient.delete(`/admin/product-templates/${id}`);
+}
+
+export async function batchDeleteProductTemplateApi(ids: number[]) {
+  return requestClient.delete('/admin/product-templates', {
+    data: { ids },
   });
 }

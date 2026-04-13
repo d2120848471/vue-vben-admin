@@ -7,7 +7,7 @@ describe('products routes', () => {
     expect(routes).toEqual([
       {
         meta: {
-          authority: ['product.brand', 'product.industry'],
+          authority: ['product.brand', 'product.industry', 'product.template'],
           icon: 'lucide:package',
           order: 20,
           title: '商品管理',
@@ -32,6 +32,15 @@ describe('products routes', () => {
             },
             name: 'ProductIndustries',
             path: '/products/industries',
+          },
+          {
+            component: expect.any(Function),
+            meta: {
+              authority: ['product.template'],
+              title: '充值模板管理',
+            },
+            name: 'ProductRechargeTemplates',
+            path: '/products/templates',
           },
         ],
       },

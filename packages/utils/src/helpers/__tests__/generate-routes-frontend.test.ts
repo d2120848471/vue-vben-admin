@@ -116,7 +116,9 @@ describe('generateRoutesByFrontend', () => {
     const routesWithProducts = [
       {
         path: '/products',
-        meta: { authority: ['product.brand', 'product.industry'] },
+        meta: {
+          authority: ['product.brand', 'product.industry', 'product.template'],
+        },
         children: [
           {
             path: '/products/brands',
@@ -126,22 +128,28 @@ describe('generateRoutesByFrontend', () => {
             path: '/products/industries',
             meta: { authority: ['product.industry'] },
           },
+          {
+            path: '/products/templates',
+            meta: { authority: ['product.template'] },
+          },
         ],
       },
     ] as RouteRecordRaw[];
 
     const generatedRoutes = await generateRoutesByFrontend(routesWithProducts, [
-      'product.brand',
+      'product.template',
     ]);
 
     expect(generatedRoutes).toEqual([
       {
         path: '/products',
-        meta: { authority: ['product.brand', 'product.industry'] },
+        meta: {
+          authority: ['product.brand', 'product.industry', 'product.template'],
+        },
         children: [
           {
-            path: '/products/brands',
-            meta: { authority: ['product.brand'] },
+            path: '/products/templates',
+            meta: { authority: ['product.template'] },
           },
         ],
       },

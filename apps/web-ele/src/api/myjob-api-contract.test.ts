@@ -13,13 +13,16 @@ import {
   addGroupApi,
   addIndustryApi,
   addIndustryRelationBrandsApi,
+  addProductTemplateApi,
   addSubjectApi,
+  batchDeleteProductTemplateApi,
   cancelAdminUserBusinessApi,
   deleteAdminUserApi,
   deleteBrandApi,
   deleteGroupApi,
   deleteIndustryApi,
   deleteIndustryRelationBrandsApi,
+  deleteProductTemplateApi,
   getAdminUsersApi,
   getAdminUserTrashApi,
   getBrandChildrenApi,
@@ -32,6 +35,8 @@ import {
   getLoginLogsApi,
   getOperationLogsApi,
   getPermissionTreeApi,
+  getProductTemplateListApi,
+  getProductTemplateValidateTypesApi,
   getSMSConfigApi,
   getSubjectsApi,
   getSystemSettingsApi,
@@ -49,6 +54,7 @@ import {
   updateBrandApi,
   updateGroupStatusApi,
   updateIndustryApi,
+  updateProductTemplateApi,
   uploadBrandImageApi,
 } from '#/api/modules/admin';
 
@@ -376,6 +382,91 @@ describe('myjob api contract', () => {
     expect(requestClientMock.delete).toHaveBeenNthCalledWith(
       3,
       '/admin/industries/7',
+    );
+  });
+
+  it('uses the product template endpoints', async () => {
+    requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
+    requestClientMock.get.mockResolvedValueOnce({ list: [] });
+    requestClientMock.post.mockResolvedValueOnce({ id: 21 });
+    requestClientMock.put.mockResolvedValueOnce(undefined);
+    requestClientMock.delete.mockResolvedValueOnce(undefined);
+    requestClientMock.delete.mockResolvedValueOnce(undefined);
+
+    await getProductTemplateListApi({
+      is_shared: '0',
+      keyword: '模板',
+      page: 1,
+      page_size: 20,
+      type: 'local',
+    });
+    await getProductTemplateValidateTypesApi();
+    await addProductTemplateApi({
+      account_name: '手机号',
+      is_shared: 0,
+      title: '手机号模板',
+      type: 'local',
+      validate_type: 1,
+    });
+    await updateProductTemplateApi(21, {
+      account_name: '即梦账号',
+      is_shared: 1,
+      title: '即梦ID',
+      type: 'local',
+      validate_type: 6,
+    });
+    await deleteProductTemplateApi(21);
+    await batchDeleteProductTemplateApi([21, 22]);
+
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      1,
+      '/admin/product-templates',
+      {
+        params: {
+          is_shared: '0',
+          keyword: '模板',
+          page: 1,
+          page_size: 20,
+          type: 'local',
+        },
+      },
+    );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      2,
+      '/admin/product-templates/validate-types',
+    );
+    expect(requestClientMock.post).toHaveBeenNthCalledWith(
+      1,
+      '/admin/product-templates',
+      {
+        account_name: '手机号',
+        is_shared: 0,
+        title: '手机号模板',
+        type: 'local',
+        validate_type: 1,
+      },
+    );
+    expect(requestClientMock.put).toHaveBeenNthCalledWith(
+      1,
+      '/admin/product-templates/21',
+      {
+        account_name: '即梦账号',
+        is_shared: 1,
+        title: '即梦ID',
+        type: 'local',
+        validate_type: 6,
+      },
+    );
+    expect(requestClientMock.delete).toHaveBeenNthCalledWith(
+      1,
+      '/admin/product-templates/21',
+    );
+    expect(requestClientMock.delete).toHaveBeenNthCalledWith(
+      2,
+      '/admin/product-templates',
+      {
+        data: { ids: [21, 22] },
+      },
     );
   });
 
