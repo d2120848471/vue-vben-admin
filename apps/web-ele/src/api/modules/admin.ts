@@ -125,6 +125,44 @@ export interface SMSConfigPayload {
   template_code: string;
 }
 
+export interface SystemSettingsItem {
+  configured: boolean;
+  key: string;
+  label: string;
+  required: boolean;
+  unit?: string;
+  updated_at?: string;
+  value: string;
+  value_type: string;
+}
+
+export interface SystemSettingsGroup {
+  group: string;
+  items: SystemSettingsItem[];
+  label?: string;
+}
+
+export interface SystemSettingsResult {
+  group?: string;
+  groups?: SystemSettingsGroup[];
+  items?: SystemSettingsItem[];
+  label?: string;
+}
+
+export interface SystemSettingsSaveItem {
+  key: string;
+  value: string;
+}
+
+export interface SystemSettingsSaveGroup {
+  group: string;
+  items: SystemSettingsSaveItem[];
+}
+
+export interface SystemSettingsSavePayload {
+  groups: SystemSettingsSaveGroup[];
+}
+
 export type SortAction = 'bottom' | 'down' | 'top' | 'up';
 
 export interface BrandListItem {
@@ -342,6 +380,14 @@ export async function getSMSConfigApi() {
 
 export async function saveSMSConfigApi(data: SMSConfigPayload) {
   return requestClient.put('/admin/settings/sms', data);
+}
+
+export async function getSystemSettingsApi() {
+  return requestClient.get<SystemSettingsResult>('/admin/settings/system');
+}
+
+export async function saveSystemSettingsApi(data: SystemSettingsSavePayload) {
+  return requestClient.put('/admin/settings/system', data);
 }
 
 export async function getBrandListApi(params: BrandListQuery) {

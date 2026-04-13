@@ -33,10 +33,12 @@ import {
   getOperationLogsApi,
   getPermissionTreeApi,
   getSMSConfigApi,
+  getSystemSettingsApi,
   getSubjectsApi,
   restoreAdminUserApi,
   saveGroupAuthApi,
   saveSMSConfigApi,
+  saveSystemSettingsApi,
   setAdminUserBusinessApi,
   sortBrandApi,
   sortIndustryApi,
@@ -392,6 +394,19 @@ describe('myjob api contract', () => {
     requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
     requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
     requestClientMock.get.mockResolvedValueOnce({ sign_name: '玖权益' });
+    requestClientMock.get.mockResolvedValueOnce({
+      groups: [
+        {
+          group: 'finance',
+          items: [
+            { key: 'tax_exclusive_rate', value: '4.5' },
+            { key: 'tax_inclusive_rate', value: '3.8' },
+          ],
+          label: '财务参数',
+        },
+      ],
+    });
+    requestClientMock.put.mockResolvedValueOnce(undefined);
     requestClientMock.put.mockResolvedValueOnce(undefined);
 
     await getGroupsApi({ page: 1, page_size: 50 });
@@ -408,6 +423,7 @@ describe('myjob api contract', () => {
     await getOperationLogsApi({ page: 1, page_size: 20 });
     await getLoginLogsApi({ page: 1, page_size: 20 });
     await getSMSConfigApi();
+    await getSystemSettingsApi();
     await saveSMSConfigApi({
       access_key: 'ak',
       access_key_secret: 'sk',
@@ -417,6 +433,26 @@ describe('myjob api contract', () => {
       keep_access_key_secret: false,
       sign_name: 'sign',
       template_code: 'tpl',
+    });
+    await saveSystemSettingsApi({
+      groups: [
+        {
+          group: 'finance',
+          items: [
+            { key: 'tax_exclusive_rate', value: '4.5' },
+            { key: 'tax_inclusive_rate', value: '3.8' },
+          ],
+        },
+        {
+          group: 'integration',
+          items: [
+            {
+              key: 'robot_webhook_url',
+              value: 'https://bot.example.com/hook',
+            },
+          ],
+        },
+      ],
     });
 
     expect(requestClientMock.get).toHaveBeenNthCalledWith(1, '/admin/groups', {
@@ -478,6 +514,10 @@ describe('myjob api contract', () => {
       7,
       '/admin/settings/sms',
     );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      8,
+      '/admin/settings/system',
+    );
     expect(requestClientMock.put).toHaveBeenCalledWith('/admin/settings/sms', {
       access_key: 'ak',
       access_key_secret: 'sk',
@@ -488,5 +528,29 @@ describe('myjob api contract', () => {
       sign_name: 'sign',
       template_code: 'tpl',
     });
+    expect(requestClientMock.put).toHaveBeenNthCalledWith(
+      2,
+      '/admin/settings/system',
+      {
+        groups: [
+          {
+            group: 'finance',
+            items: [
+              { key: 'tax_exclusive_rate', value: '4.5' },
+              { key: 'tax_inclusive_rate', value: '3.8' },
+            ],
+          },
+          {
+            group: 'integration',
+            items: [
+              {
+                key: 'robot_webhook_url',
+                value: 'https://bot.example.com/hook',
+              },
+            ],
+          },
+        ],
+      },
+    );
   });
 });
