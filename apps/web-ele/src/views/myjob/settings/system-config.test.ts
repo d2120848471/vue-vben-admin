@@ -251,7 +251,9 @@ describe('system config page', () => {
     expect(findInput(page.root, 'robot_webhook_url').value).toBe(
       'https://bot.example.com/hook',
     );
-    expect(page.root.textContent).toContain('最近更新时间：2026-04-13 12:32:00');
+    expect(page.root.textContent).toContain(
+      '最近更新时间：2026-04-13 12:32:00',
+    );
   });
 
   it('submits the fixed form fields as grouped system settings', async () => {

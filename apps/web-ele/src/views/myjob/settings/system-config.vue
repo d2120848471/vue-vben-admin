@@ -1,8 +1,5 @@
 <script lang="ts" setup>
-import type {
-  SystemSettingsGroup,
-  SystemSettingsSavePayload,
-} from '#/api';
+import type { SystemSettingsGroup, SystemSettingsSavePayload } from '#/api';
 
 import { computed, onMounted, reactive, ref } from 'vue';
 
@@ -77,7 +74,7 @@ const latestUpdatedAt = computed(() => {
   return Object.values(fieldMeta)
     .map((item) => item.updated_at)
     .filter(Boolean)
-    .sort()
+    .toSorted()
     .at(-1);
 });
 
@@ -102,10 +99,10 @@ function applySettingsGroups(groups: SystemSettingsGroup[]) {
   const financeGroup = groups.find((item) => item.group === 'finance');
   const integrationGroup = groups.find((item) => item.group === 'integration');
   const financeMap = new Map(
-    financeGroup?.items.map((item) => [item.key, item]) ?? [],
+    financeGroup?.items.map((item) => [item.key, item]),
   );
   const integrationMap = new Map(
-    integrationGroup?.items.map((item) => [item.key, item]) ?? [],
+    integrationGroup?.items.map((item) => [item.key, item]),
   );
 
   const exclusive = financeMap.get('tax_exclusive_rate');
@@ -277,14 +274,13 @@ onMounted(() => {
             />
           </ElFormItem>
 
-          <div class="mt-8 rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
+          <div
+            class="mt-8 rounded-md border border-blue-200 bg-blue-50 px-4 py-3"
+          >
             {{ groupMeta.integration.label }}
           </div>
 
-          <ElFormItem
-            class="mt-6"
-            :label="fieldMeta.robot_webhook_url.label"
-          >
+          <ElFormItem class="mt-6" :label="fieldMeta.robot_webhook_url.label">
             <ElInput
               v-model="formModel.robot_webhook_url"
               name="robot_webhook_url"
