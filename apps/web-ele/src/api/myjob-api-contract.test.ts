@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as adminApiModule from '#/api/modules/admin';
-
 import {
   loginApi,
   logoutApi,
@@ -9,6 +7,7 @@ import {
   verifyLoginSmsApi,
 } from '#/api/core/auth';
 import { getUserInfoApi } from '#/api/core/user';
+import * as adminApiModule from '#/api/modules/admin';
 import {
   addAdminUserApi,
   addBrandApi,
@@ -17,6 +16,7 @@ import {
   addIndustryRelationBrandsApi,
   addProductTemplateApi,
   addSubjectApi,
+  addSupplierPlatformApi,
   batchDeleteProductTemplateApi,
   cancelAdminUserBusinessApi,
   deleteAdminUserApi,
@@ -25,6 +25,7 @@ import {
   deleteIndustryApi,
   deleteIndustryRelationBrandsApi,
   deleteProductTemplateApi,
+  deleteSupplierPlatformApi,
   getAdminUsersApi,
   getAdminUserTrashApi,
   getBrandChildrenApi,
@@ -41,7 +42,11 @@ import {
   getProductTemplateValidateTypesApi,
   getSMSConfigApi,
   getSubjectsApi,
+  getSupplierPlatformDetailApi,
+  getSupplierPlatformListApi,
+  getSupplierPlatformTypesApi,
   getSystemSettingsApi,
+  refreshSupplierPlatformBalanceApi,
   restoreAdminUserApi,
   saveGroupAuthApi,
   saveSMSConfigApi,
@@ -57,6 +62,7 @@ import {
   updateGroupStatusApi,
   updateIndustryApi,
   updateProductTemplateApi,
+  updateSupplierPlatformApi,
   uploadBrandImageApi,
 } from '#/api/modules/admin';
 
@@ -558,6 +564,317 @@ describe('myjob api contract', () => {
     expect(requestClientMock.delete).toHaveBeenNthCalledWith(
       1,
       '/admin/purchase-limit-strategies/31',
+    );
+  });
+
+  it('uses the product goods endpoints', async () => {
+    const api = adminApiModule as typeof adminApiModule & {
+      addProductGoodsApi?: (payload: Record<string, any>) => Promise<unknown>;
+      deleteProductGoodsApi?: (id: number) => Promise<unknown>;
+      getProductGoodsDetailApi?: (id: number) => Promise<unknown>;
+      getProductGoodsFormOptionsApi?: () => Promise<unknown>;
+      getProductGoodsListApi?: (
+        params: Record<string, any>,
+      ) => Promise<unknown>;
+      updateProductGoodsApi?: (
+        id: number,
+        payload: Record<string, any>,
+      ) => Promise<unknown>;
+    };
+
+    expect(typeof api.getProductGoodsListApi).toBe('function');
+    expect(typeof api.getProductGoodsDetailApi).toBe('function');
+    expect(typeof api.getProductGoodsFormOptionsApi).toBe('function');
+    expect(typeof api.addProductGoodsApi).toBe('function');
+    expect(typeof api.updateProductGoodsApi).toBe('function');
+    expect(typeof api.deleteProductGoodsApi).toBe('function');
+
+    requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
+    requestClientMock.get.mockResolvedValueOnce({
+      brand_id: 35,
+      goods_code: 'GD0000000021',
+      has_tax: 1,
+      id: 21,
+      name: '腾讯视频周卡',
+      subject_id: 11,
+      subject_name: '开票主体A',
+    });
+    requestClientMock.get.mockResolvedValueOnce({
+      boolean_options: [{ label: '是', value: 1 }],
+      brands: [],
+      goods_types: [{ label: '卡密', value: 'card_secret' }],
+      purchase_limit_strategies: [],
+      status_options: [{ label: '启用', value: 1 }],
+      subjects: [{ id: 11, name: '开票主体A' }],
+      supply_types: [{ label: '渠道供货', value: 'channel' }],
+      templates: [],
+    });
+    requestClientMock.post.mockResolvedValueOnce({
+      goods_code: 'GD0000000021',
+      id: 21,
+    });
+    requestClientMock.put.mockResolvedValueOnce(undefined);
+    requestClientMock.delete.mockResolvedValueOnce(undefined);
+
+    await api.getProductGoodsListApi?.({
+      brand_id: 35,
+      goods_type: 'card_secret',
+      has_tax: '1',
+      keyword: '腾讯',
+      page: 2,
+      page_size: 10,
+      status: '0',
+    });
+    await api.getProductGoodsDetailApi?.(21);
+    await api.getProductGoodsFormOptionsApi?.();
+    await api.addProductGoodsApi?.({
+      balance_limit: '0.0000',
+      brand_id: 35,
+      default_sell_price: '19.9000',
+      exception_notify: 1,
+      goods_type: 'card_secret',
+      has_tax: 1,
+      is_douyin: 0,
+      is_export: 1,
+      max_purchase_qty: 5,
+      min_purchase_qty: 1,
+      name: '腾讯视频周卡',
+      product_template_id: 7,
+      purchase_limit_strategy_id: 8,
+      purchase_notice: '购买须知',
+      status: 1,
+      subject_id: 11,
+      supply_type: 'channel',
+      terminal_price_limit: '29.9000',
+    });
+    await api.updateProductGoodsApi?.(21, {
+      balance_limit: '10.0000',
+      brand_id: 36,
+      default_sell_price: '29.9000',
+      exception_notify: 0,
+      goods_type: 'direct_recharge',
+      has_tax: 0,
+      is_douyin: 1,
+      is_export: 0,
+      max_purchase_qty: 6,
+      min_purchase_qty: 2,
+      name: '腾讯视频月卡',
+      product_template_id: null,
+      purchase_limit_strategy_id: 8,
+      purchase_notice: '编辑须知',
+      status: 0,
+      subject_id: null,
+      supply_type: 'channel',
+      terminal_price_limit: '',
+    });
+    await api.deleteProductGoodsApi?.(21);
+
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      1,
+      '/admin/products',
+      {
+        params: {
+          brand_id: 35,
+          goods_type: 'card_secret',
+          has_tax: '1',
+          keyword: '腾讯',
+          page: 2,
+          page_size: 10,
+          status: '0',
+        },
+      },
+    );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      2,
+      '/admin/products/21',
+    );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      3,
+      '/admin/products/form-options',
+    );
+    expect(requestClientMock.post).toHaveBeenNthCalledWith(
+      1,
+      '/admin/products',
+      {
+        balance_limit: '0.0000',
+        brand_id: 35,
+        default_sell_price: '19.9000',
+        exception_notify: 1,
+        goods_type: 'card_secret',
+        has_tax: 1,
+        is_douyin: 0,
+        is_export: 1,
+        max_purchase_qty: 5,
+        min_purchase_qty: 1,
+        name: '腾讯视频周卡',
+        product_template_id: 7,
+        purchase_limit_strategy_id: 8,
+        purchase_notice: '购买须知',
+        status: 1,
+        subject_id: 11,
+        supply_type: 'channel',
+        terminal_price_limit: '29.9000',
+      },
+    );
+    expect(requestClientMock.put).toHaveBeenNthCalledWith(
+      1,
+      '/admin/products/21',
+      {
+        balance_limit: '10.0000',
+        brand_id: 36,
+        default_sell_price: '29.9000',
+        exception_notify: 0,
+        goods_type: 'direct_recharge',
+        has_tax: 0,
+        is_douyin: 1,
+        is_export: 0,
+        max_purchase_qty: 6,
+        min_purchase_qty: 2,
+        name: '腾讯视频月卡',
+        product_template_id: null,
+        purchase_limit_strategy_id: 8,
+        purchase_notice: '编辑须知',
+        status: 0,
+        subject_id: null,
+        supply_type: 'channel',
+        terminal_price_limit: '',
+      },
+    );
+    expect(requestClientMock.delete).toHaveBeenNthCalledWith(
+      1,
+      '/admin/products/21',
+    );
+  });
+
+  it('uses the supplier platform endpoints', async () => {
+    requestClientMock.get.mockResolvedValueOnce({
+      list: [],
+      pagination: {},
+    });
+    requestClientMock.get.mockResolvedValueOnce({
+      list: [],
+    });
+    requestClientMock.get.mockResolvedValueOnce({
+      id: 21,
+    });
+    requestClientMock.post.mockResolvedValueOnce({ id: 21 });
+    requestClientMock.put.mockResolvedValueOnce(undefined);
+    requestClientMock.delete.mockResolvedValueOnce(undefined);
+    requestClientMock.post.mockResolvedValueOnce({
+      balance: '1888.0000',
+      connect_status: 1,
+      connect_status_text: '正常',
+      id: 21,
+      message: '查询成功',
+      refreshed_at: '2026-04-14 20:00:00',
+      trace_id: 'trace-1',
+    });
+
+    await getSupplierPlatformListApi({
+      connect_status: '2',
+      has_tax: '1',
+      keyword: '木木',
+      page: 2,
+      page_size: 10,
+      subject_id: 7,
+      type_id: 35,
+    });
+    await getSupplierPlatformTypesApi();
+    await getSupplierPlatformDetailApi(21);
+    await addSupplierPlatformApi({
+      backup_domain: 'backup.xqy.test',
+      crowd_name: '运营群',
+      domain: 'api.xqy.test',
+      has_tax: 1,
+      name: '木木（星权益含税）',
+      secret_key: 'secret-key',
+      sort: 5,
+      subject_id: 7,
+      threshold_amount: '5000.0000',
+      token_id: '1008612345',
+      type_id: 35,
+    });
+    await updateSupplierPlatformApi(21, {
+      backup_domain: 'backup.xqy.test',
+      crowd_name: '运营群-编辑',
+      domain: 'api.xqy.test',
+      has_tax: 0,
+      name: '木木（星权益未税）',
+      secret_key: 'secret-key-updated',
+      sort: 1,
+      subject_id: 7,
+      threshold_amount: '3000.0000',
+      token_id: '10086',
+      type_id: 35,
+    });
+    await deleteSupplierPlatformApi(21);
+    await refreshSupplierPlatformBalanceApi(21);
+
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      1,
+      '/admin/supplier-platforms',
+      {
+        params: {
+          connect_status: '2',
+          has_tax: '1',
+          keyword: '木木',
+          page: 2,
+          page_size: 10,
+          subject_id: 7,
+          type_id: 35,
+        },
+      },
+    );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      2,
+      '/admin/supplier-platform-types',
+    );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      3,
+      '/admin/supplier-platforms/21',
+    );
+    expect(requestClientMock.post).toHaveBeenNthCalledWith(
+      1,
+      '/admin/supplier-platforms',
+      {
+        backup_domain: 'backup.xqy.test',
+        crowd_name: '运营群',
+        domain: 'api.xqy.test',
+        has_tax: 1,
+        name: '木木（星权益含税）',
+        secret_key: 'secret-key',
+        sort: 5,
+        subject_id: 7,
+        threshold_amount: '5000.0000',
+        token_id: '1008612345',
+        type_id: 35,
+      },
+    );
+    expect(requestClientMock.put).toHaveBeenNthCalledWith(
+      1,
+      '/admin/supplier-platforms/21',
+      {
+        backup_domain: 'backup.xqy.test',
+        crowd_name: '运营群-编辑',
+        domain: 'api.xqy.test',
+        has_tax: 0,
+        name: '木木（星权益未税）',
+        secret_key: 'secret-key-updated',
+        sort: 1,
+        subject_id: 7,
+        threshold_amount: '3000.0000',
+        token_id: '10086',
+        type_id: 35,
+      },
+    );
+    expect(requestClientMock.delete).toHaveBeenNthCalledWith(
+      1,
+      '/admin/supplier-platforms/21',
+    );
+    expect(requestClientMock.post).toHaveBeenNthCalledWith(
+      2,
+      '/admin/supplier-platforms/21/balance/refresh',
+      {},
     );
   });
 

@@ -10,8 +10,10 @@ describe('products routes', () => {
           authority: [
             'product.brand',
             'product.industry',
+            'product.goods',
             'product.template',
             'product.purchase_limit',
+            'supplier.index',
           ],
           icon: 'lucide:package',
           order: 20,
@@ -41,6 +43,15 @@ describe('products routes', () => {
           {
             component: expect.any(Function),
             meta: {
+              authority: ['product.goods'],
+              title: '商品列表',
+            },
+            name: 'ProductGoods',
+            path: '/products/goods',
+          },
+          {
+            component: expect.any(Function),
+            meta: {
               authority: ['product.template'],
               title: '充值模板管理',
             },
@@ -55,6 +66,15 @@ describe('products routes', () => {
             },
             name: 'ProductPurchaseLimits',
             path: '/products/purchase-limits',
+          },
+          {
+            component: expect.any(Function),
+            meta: {
+              authority: ['supplier.index'],
+              title: '第三方对接',
+            },
+            name: 'ProductSuppliers',
+            path: '/products/suppliers',
           },
         ],
       },

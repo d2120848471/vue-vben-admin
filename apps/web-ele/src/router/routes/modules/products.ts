@@ -6,8 +6,10 @@ const routes: RouteRecordRaw[] = [
       authority: [
         'product.brand',
         'product.industry',
+        'product.goods',
         'product.template',
         'product.purchase_limit',
+        'supplier.index',
       ],
       icon: 'lucide:package',
       order: 20,
@@ -35,6 +37,15 @@ const routes: RouteRecordRaw[] = [
         path: '/products/industries',
       },
       {
+        component: () => import('#/views/myjob/products/goods/index.vue'),
+        meta: {
+          authority: ['product.goods'],
+          title: '商品列表',
+        },
+        name: 'ProductGoods',
+        path: '/products/goods',
+      },
+      {
         component: () => import('#/views/myjob/products/templates/index.vue'),
         meta: {
           authority: ['product.template'],
@@ -52,6 +63,15 @@ const routes: RouteRecordRaw[] = [
         },
         name: 'ProductPurchaseLimits',
         path: '/products/purchase-limits',
+      },
+      {
+        component: () => import('#/views/myjob/products/suppliers/index.vue'),
+        meta: {
+          authority: ['supplier.index'],
+          title: '第三方对接',
+        },
+        name: 'ProductSuppliers',
+        path: '/products/suppliers',
       },
     ],
   },

@@ -283,6 +283,85 @@ export interface ProductTemplateValidateTypeItem {
   title: string;
 }
 
+export interface SupplierPlatformTypeItem {
+  id: number;
+  provider_code: string;
+  type_name: string;
+}
+
+export interface SupplierPlatformListItem {
+  backup_domain: string;
+  balance_warning: number;
+  connect_status: number;
+  connect_status_text: string;
+  crowd_name: string;
+  domain: string;
+  has_tax: number;
+  id: number;
+  last_balance: string;
+  last_balance_at: string;
+  last_balance_message: string;
+  name: string;
+  provider_code: string;
+  provider_name: string;
+  sort: number;
+  subject_id: number;
+  subject_name: string;
+  threshold_amount: string;
+  type_id: number;
+  type_name: string;
+}
+
+export interface SupplierPlatformListQuery extends UserListQuery {
+  connect_status?: string;
+  has_tax?: string;
+  keyword?: string;
+  subject_id?: number;
+  type_id?: number;
+}
+
+export interface SupplierPlatformDetailResult {
+  backup_domain: string;
+  crowd_name: string;
+  domain: string;
+  extra_config: Record<string, any>;
+  has_tax: number;
+  id: number;
+  name: string;
+  provider_code: string;
+  provider_name: string;
+  secret_key: string;
+  sort: number;
+  subject_id: number;
+  threshold_amount: string;
+  token_id: string;
+  type_id: number;
+}
+
+export interface SupplierPlatformPayload {
+  backup_domain: string;
+  crowd_name: string;
+  domain: string;
+  has_tax: number;
+  name: string;
+  secret_key: string;
+  sort: number;
+  subject_id: number;
+  threshold_amount: string;
+  token_id: string;
+  type_id: number;
+}
+
+export interface SupplierPlatformRefreshResult {
+  balance: string;
+  connect_status: number;
+  connect_status_text: string;
+  id: number;
+  message: string;
+  refreshed_at: string;
+  trace_id: string;
+}
+
 export interface PurchaseLimitStrategyListItem {
   created_at: string;
   id: number;
@@ -318,6 +397,132 @@ export interface PurchaseLimitStrategyEnumItem {
 export interface PurchaseLimitStrategyEnumsResult {
   limit_types: PurchaseLimitStrategyEnumItem[];
   period_types: PurchaseLimitStrategyEnumItem[];
+}
+
+export interface ProductGoodsListQuery extends UserListQuery {
+  brand_id?: number;
+  goods_type?: string;
+  has_tax?: string;
+  keyword?: string;
+  status?: string;
+}
+
+export interface ProductGoodsListItem {
+  brand_id: number;
+  brand_icon: string;
+  brand_name: string;
+  created_at: string;
+  default_sell_price: string;
+  exception_notify: number;
+  goods_code: string;
+  goods_type: string;
+  has_tax: number;
+  id: number;
+  is_douyin: number;
+  is_export: number;
+  name: string;
+  product_template_id: number;
+  product_template_title: string;
+  purchase_limit_strategy_id: number;
+  purchase_limit_strategy_name: string;
+  status: number;
+  subject_name?: string;
+  supply_type: string;
+  terminal_price_limit: string;
+}
+
+export interface ProductGoodsDetailResult {
+  balance_limit: string;
+  brand_id: number;
+  brand_name: string;
+  created_at: string;
+  default_sell_price: string;
+  exception_notify: number;
+  goods_code: string;
+  goods_type: string;
+  has_tax: number;
+  id: number;
+  is_douyin: number;
+  is_export: number;
+  max_purchase_qty: number;
+  min_purchase_qty: number;
+  name: string;
+  product_template_id: null | number;
+  product_template_title: string;
+  purchase_limit_strategy_id: null | number;
+  purchase_limit_strategy_name: string;
+  purchase_limit_strategy_status: number;
+  purchase_notice: string;
+  status: number;
+  subject_id: null | number;
+  subject_name: string;
+  supply_type: string;
+  terminal_price_limit: string;
+  updated_at: string;
+}
+
+export interface ProductGoodsPayload {
+  balance_limit: string;
+  brand_id: number;
+  default_sell_price: string;
+  exception_notify: number;
+  goods_type: string;
+  has_tax: number;
+  is_douyin: number;
+  is_export: number;
+  max_purchase_qty: number;
+  min_purchase_qty: number;
+  name: string;
+  product_template_id: null | number;
+  purchase_limit_strategy_id: null | number;
+  purchase_notice: string;
+  status: number;
+  subject_id: null | number;
+  supply_type: string;
+  terminal_price_limit: string;
+}
+
+export interface ProductGoodsBrandOption {
+  children: ProductGoodsBrandOption[];
+  id: number;
+  is_leaf: boolean;
+  name: string;
+}
+
+export interface ProductGoodsTemplateOption {
+  id: number;
+  title: string;
+}
+
+export interface ProductGoodsStrategyOption {
+  id: number;
+  name: string;
+}
+
+export interface ProductGoodsSubjectOption {
+  id: number;
+  name: string;
+}
+
+export interface ProductGoodsStringOption {
+  label: string;
+  value: string;
+}
+
+export interface ProductGoodsIntOption {
+  label: string;
+  value: number;
+}
+
+export interface ProductGoodsFormOptionsResult {
+  boolean_options: ProductGoodsIntOption[];
+  brands: ProductGoodsBrandOption[];
+  goods_types: ProductGoodsStringOption[];
+  purchase_limit_strategies: ProductGoodsStrategyOption[];
+  status_options: ProductGoodsIntOption[];
+  subjects: ProductGoodsSubjectOption[];
+  supply_types: ProductGoodsStringOption[];
+  templates: ProductGoodsTemplateOption[];
 }
 
 // 后端这批状态/授权接口统一切到了 PATCH，这里集中走底层 request。
@@ -607,6 +812,51 @@ export async function batchDeleteProductTemplateApi(ids: number[]) {
   });
 }
 
+export async function getSupplierPlatformListApi(
+  params: SupplierPlatformListQuery,
+) {
+  return requestClient.get<PagedResult<SupplierPlatformListItem>>(
+    '/admin/supplier-platforms',
+    {
+      params,
+    },
+  );
+}
+
+export async function getSupplierPlatformTypesApi() {
+  return requestClient.get<{ list: SupplierPlatformTypeItem[] }>(
+    '/admin/supplier-platform-types',
+  );
+}
+
+export async function getSupplierPlatformDetailApi(id: number) {
+  return requestClient.get<SupplierPlatformDetailResult>(
+    `/admin/supplier-platforms/${id}`,
+  );
+}
+
+export async function addSupplierPlatformApi(data: SupplierPlatformPayload) {
+  return requestClient.post('/admin/supplier-platforms', data);
+}
+
+export async function updateSupplierPlatformApi(
+  id: number,
+  data: SupplierPlatformPayload,
+) {
+  return requestClient.put(`/admin/supplier-platforms/${id}`, data);
+}
+
+export async function deleteSupplierPlatformApi(id: number) {
+  return requestClient.delete(`/admin/supplier-platforms/${id}`);
+}
+
+export async function refreshSupplierPlatformBalanceApi(id: number) {
+  return requestClient.post<SupplierPlatformRefreshResult>(
+    `/admin/supplier-platforms/${id}/balance/refresh`,
+    {},
+  );
+}
+
 export async function getPurchaseLimitStrategyListApi(
   params: PurchaseLimitStrategyListQuery,
 ) {
@@ -646,4 +896,41 @@ export async function updatePurchaseLimitStrategyStatusApi(
 
 export async function deletePurchaseLimitStrategyApi(id: number) {
   return requestClient.delete(`/admin/purchase-limit-strategies/${id}`);
+}
+
+export async function getProductGoodsListApi(params: ProductGoodsListQuery) {
+  return requestClient.get<PagedResult<ProductGoodsListItem>>(
+    '/admin/products',
+    {
+      params,
+    },
+  );
+}
+
+export async function getProductGoodsDetailApi(id: number) {
+  return requestClient.get<ProductGoodsDetailResult>(`/admin/products/${id}`);
+}
+
+export async function getProductGoodsFormOptionsApi() {
+  return requestClient.get<ProductGoodsFormOptionsResult>(
+    '/admin/products/form-options',
+  );
+}
+
+export async function addProductGoodsApi(data: ProductGoodsPayload) {
+  return requestClient.post<{ goods_code: string; id: number }>(
+    '/admin/products',
+    data,
+  );
+}
+
+export async function updateProductGoodsApi(
+  id: number,
+  data: ProductGoodsPayload,
+) {
+  return requestClient.put(`/admin/products/${id}`, data);
+}
+
+export async function deleteProductGoodsApi(id: number) {
+  return requestClient.delete(`/admin/products/${id}`);
 }

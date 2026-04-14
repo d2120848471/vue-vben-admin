@@ -3,11 +3,15 @@ import { describe, expect, it } from 'vitest';
 import {
   appendIndustrySelectorOptions,
   buildBrandTree,
+  buildProductGoodsBrandCascaderOptions,
+  buildProductGoodsBrandFilterOptions,
+  buildProductGoodsStrategySelectOptions,
   getAvailableBrandSortActions,
   getBrandManageActionVisibility,
   getBrandSortActionItems,
   getBrandTreeNodePresentation,
   getBrandTreePath,
+  getProductGoodsBrandPath,
   mergeBrandChildren,
   relationIdsFromItems,
   resolveProductImageUrl,
@@ -316,5 +320,108 @@ describe('product shared helpers', () => {
   it('shows asset fields only for root brands', () => {
     expect(shouldShowBrandAssetFields(0)).toBe(true);
     expect(shouldShowBrandAssetFields(12)).toBe(false);
+  });
+
+  it('flattens product goods brand filters with full path labels', () => {
+    expect(
+      buildProductGoodsBrandFilterOptions([
+        {
+          children: [
+            {
+              children: [{ children: [], id: 3, is_leaf: true, name: '周卡' }],
+              id: 2,
+              is_leaf: false,
+              name: 'SVIP',
+            },
+          ],
+          id: 1,
+          is_leaf: false,
+          name: '腾讯视频',
+        },
+      ]),
+    ).toEqual([
+      { label: '腾讯视频', value: 1 },
+      { label: '腾讯视频 / SVIP', value: 2 },
+      { label: '腾讯视频 / SVIP / 周卡', value: 3 },
+    ]);
+  });
+
+  it('builds cascader options and keeps non-leaf product brands expandable', () => {
+    expect(
+      buildProductGoodsBrandCascaderOptions([
+        {
+          children: [
+            {
+              children: [{ children: [], id: 3, is_leaf: true, name: '周卡' }],
+              id: 2,
+              is_leaf: false,
+              name: 'SVIP',
+            },
+          ],
+          id: 1,
+          is_leaf: false,
+          name: '腾讯视频',
+        },
+      ]),
+    ).toEqual([
+      {
+        children: [
+          {
+            children: [
+              {
+                children: [],
+                disabled: false,
+                label: '周卡',
+                value: 3,
+              },
+            ],
+            disabled: false,
+            label: 'SVIP',
+            value: 2,
+          },
+        ],
+        disabled: false,
+        label: '腾讯视频',
+        value: 1,
+      },
+    ]);
+  });
+
+  it('returns the selected path from product goods brand trees', () => {
+    expect(
+      getProductGoodsBrandPath(
+        [
+          {
+            children: [
+              {
+                children: [
+                  { children: [], id: 3, is_leaf: true, name: '周卡' },
+                ],
+                id: 2,
+                is_leaf: false,
+                name: 'SVIP',
+              },
+            ],
+            id: 1,
+            is_leaf: false,
+            name: '腾讯视频',
+          },
+        ],
+        3,
+      ),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it('appends the current disabled strategy back into selector options', () => {
+    expect(
+      buildProductGoodsStrategySelectOptions([{ id: 7, name: '启用策略' }], {
+        id: 9,
+        name: '旧策略',
+        status: 0,
+      }),
+    ).toEqual([
+      { disabled: false, label: '启用策略', value: 7 },
+      { disabled: true, label: '旧策略（当前已绑定/已禁用）', value: 9 },
+    ]);
   });
 });

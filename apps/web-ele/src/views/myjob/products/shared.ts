@@ -2,6 +2,8 @@ import type {
   BrandListItem,
   BrandSelectorItem,
   IndustryRelationBrandItem,
+  ProductGoodsBrandOption,
+  ProductGoodsStrategyOption,
   SortAction,
 } from '#/api';
 
@@ -30,6 +32,30 @@ export interface BrandTreeNodePresentation {
   extraIndentPx: number;
   isRoot: boolean;
   levelLabel: string;
+}
+
+export interface ProductGoodsBrandFilterOption {
+  label: string;
+  value: number;
+}
+
+export interface ProductGoodsBrandCascaderOption {
+  children: ProductGoodsBrandCascaderOption[];
+  disabled: boolean;
+  label: string;
+  value: number;
+}
+
+export interface ProductGoodsCurrentStrategyOption {
+  id: null | number;
+  name: string;
+  status: number;
+}
+
+export interface ProductGoodsStrategySelectOption {
+  disabled: boolean;
+  label: string;
+  value: number;
 }
 
 const ABSOLUTE_URL_PATTERN = /^(?:[a-z]+:)?\/\//i;
@@ -239,4 +265,83 @@ export function resolveProductImageUrl(url: string, apiURL = '') {
 
 export function shouldShowBrandAssetFields(parentId: number) {
   return parentId === 0;
+}
+
+export function buildProductGoodsBrandFilterOptions(
+  items: ProductGoodsBrandOption[],
+  parentLabels: string[] = [],
+): ProductGoodsBrandFilterOption[] {
+  const options: ProductGoodsBrandFilterOption[] = [];
+  for (const item of items) {
+    const nextLabels = [...parentLabels, item.name];
+    options.push(
+      {
+        label: nextLabels.join(' / '),
+        value: item.id,
+      },
+      ...buildProductGoodsBrandFilterOptions(item.children ?? [], nextLabels),
+    );
+  }
+  return options;
+}
+
+export function buildProductGoodsBrandCascaderOptions(
+  items: ProductGoodsBrandOption[],
+): ProductGoodsBrandCascaderOption[] {
+  return items.map((item) => ({
+    children: buildProductGoodsBrandCascaderOptions(item.children ?? []),
+    disabled: false,
+    label: item.name,
+    value: item.id,
+  }));
+}
+
+export function getProductGoodsBrandPath(
+  items: ProductGoodsBrandOption[],
+  brandId: number,
+  path: number[] = [],
+): null | number[] {
+  for (const item of items) {
+    const nextPath = [...path, item.id];
+    if (item.id === brandId) {
+      return nextPath;
+    }
+    const childPath = getProductGoodsBrandPath(
+      item.children ?? [],
+      brandId,
+      nextPath,
+    );
+    if (childPath) {
+      return childPath;
+    }
+  }
+  return null;
+}
+
+export function buildProductGoodsStrategySelectOptions(
+  options: ProductGoodsStrategyOption[],
+  currentOption?: ProductGoodsCurrentStrategyOption,
+): ProductGoodsStrategySelectOption[] {
+  const items = options.map((item) => ({
+    disabled: false,
+    label: item.name,
+    value: item.id,
+  }));
+  if (!currentOption?.id || !currentOption.name) {
+    return items;
+  }
+  if (items.some((item) => item.value === currentOption.id)) {
+    return items;
+  }
+  return [
+    ...items,
+    {
+      disabled: currentOption.status === 0,
+      label:
+        currentOption.status === 0
+          ? `${currentOption.name}（当前已绑定/已禁用）`
+          : currentOption.name,
+      value: currentOption.id,
+    },
+  ];
 }
