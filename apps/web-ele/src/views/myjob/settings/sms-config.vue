@@ -18,7 +18,10 @@ import {
   ElTag,
 } from 'element-plus';
 
-import { getSMSConfigApi, saveSMSConfigApi } from '#/api';
+import {
+  getSMSConfigApi,
+  saveSMSConfigApi,
+} from '#/api/modules/admin/settings/sms';
 
 import { MYJOB_PAGE_CONTENT_CLASS } from '../shared';
 

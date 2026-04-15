@@ -3,7 +3,8 @@ import type { FormInstance } from 'element-plus';
 
 import type { GridPageParams } from '../shared';
 
-import type { GroupListItem, MenuTreeItem } from '#/api';
+import type { MenuTreeItem } from '#/api/core/menu';
+import type { GroupListItem } from '#/api/modules/admin/groups';
 
 import { computed, reactive, ref } from 'vue';
 
@@ -34,7 +35,7 @@ import {
   saveGroupAuthApi,
   updateGroupApi,
   updateGroupStatusApi,
-} from '#/api';
+} from '#/api/modules/admin/groups';
 import { useAuthStore } from '#/store';
 
 import {

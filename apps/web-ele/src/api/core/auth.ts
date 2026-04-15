@@ -48,17 +48,26 @@ export namespace AuthApi {
   }
 }
 
-/** 登录 */
+/**
+ * 登录：账号密码登录（可能返回短信二次验证挑战）
+ * POST /admin/auth/login
+ */
 export async function loginApi(data: AuthApi.LoginParams) {
   return requestClient.post<AuthApi.LoginResult>('/admin/auth/login', data);
 }
 
-/** 发送登录验证码 */
+/**
+ * 登录：发送短信验证码
+ * POST /admin/auth/sms/send
+ */
 export async function sendLoginSmsApi(data: AuthApi.LoginSMSSendParams) {
   return requestClient.post('/admin/auth/sms/send', data);
 }
 
-/** 校验短信验证码 */
+/**
+ * 登录：校验短信验证码并换取会话
+ * POST /admin/auth/sms/verify
+ */
 export async function verifyLoginSmsApi(data: AuthApi.LoginSMSVerifyParams) {
   return requestClient.post<AuthApi.LoginSMSVerifyResult>(
     '/admin/auth/sms/verify',
@@ -66,7 +75,10 @@ export async function verifyLoginSmsApi(data: AuthApi.LoginSMSVerifyParams) {
   );
 }
 
-/** 退出登录 */
+/**
+ * 退出登录：清理当前会话
+ * DELETE /admin/auth/session
+ */
 export async function logoutApi() {
   return requestClient.delete('/admin/auth/session');
 }

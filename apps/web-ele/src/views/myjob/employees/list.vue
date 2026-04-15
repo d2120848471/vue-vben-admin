@@ -3,7 +3,11 @@ import type { FormInstance } from 'element-plus';
 
 import type { GridPageParams } from '../shared';
 
-import type { GroupListItem, UserFormPayload, UserListItem } from '#/api';
+import type { GroupListItem } from '#/api/modules/admin/groups';
+import type {
+  UserFormPayload,
+  UserListItem,
+} from '#/api/modules/admin/users';
 
 import { computed, onMounted, reactive, ref } from 'vue';
 
@@ -30,12 +34,12 @@ import {
   cancelAdminUserBusinessApi,
   deleteAdminUserApi,
   getAdminUsersApi,
-  getGroupsApi,
   setAdminUserBusinessApi,
   updateAdminUserApi,
   updateAdminUserNotifyApi,
   updateAdminUserStatusApi,
-} from '#/api';
+} from '#/api/modules/admin/users';
+import { getGroupsApi } from '#/api/modules/admin/groups';
 
 import {
   keywordMatch,

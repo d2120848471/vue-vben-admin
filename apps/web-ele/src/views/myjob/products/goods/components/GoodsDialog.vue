@@ -12,7 +12,7 @@ import type {
   ProductGoodsStringOption,
   ProductGoodsSubjectOption,
   ProductGoodsTemplateOption,
-} from '#/api';
+} from '#/api/modules/admin/products/goods';
 
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -32,9 +32,9 @@ import {
 import {
   addProductGoodsApi,
   getProductGoodsDetailApi,
-  getSubjectsApi,
   updateProductGoodsApi,
-} from '#/api';
+} from '#/api/modules/admin/products/goods';
+import { getSubjectsApi } from '#/api/modules/admin/subjects';
 
 import {
   buildProductGoodsStrategySelectOptions,

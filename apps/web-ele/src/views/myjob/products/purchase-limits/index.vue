@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { GridPageParams } from '../../shared';
 
-import type { PurchaseLimitStrategyListItem } from '#/api';
+import type { PurchaseLimitStrategyListItem } from '#/api/modules/admin/products/purchase-limits';
 
 import { computed, reactive, ref } from 'vue';
 
@@ -15,7 +15,7 @@ import {
   deletePurchaseLimitStrategyApi,
   getPurchaseLimitStrategyListApi,
   updatePurchaseLimitStrategyStatusApi,
-} from '#/api';
+} from '#/api/modules/admin/products/purchase-limits';
 
 import {
   formatDateTime,

@@ -1,11 +1,13 @@
 import type {
-  BrandListItem,
-  BrandSelectorItem,
-  IndustryRelationBrandItem,
   ProductGoodsBrandOption,
   ProductGoodsStrategyOption,
-  SortAction,
-} from '#/api';
+} from '#/api/modules/admin/products/goods';
+import type { SortAction } from '#/api/modules/admin/common';
+import type {
+  BrandListItem,
+  BrandSelectorItem,
+} from '#/api/modules/admin/products/brands';
+import type { IndustryRelationBrandItem } from '#/api/modules/admin/products/industries';
 
 export interface BrandSortActionAvailability {
   bottom: boolean;

@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import type { FormInstance } from 'element-plus';
 
+import type { BrandSelectorItem } from '#/api/modules/admin/products/brands';
 import type {
-  BrandSelectorItem,
   IndustryListItem,
   IndustryPayload,
   IndustryRelationBrandItem,
-} from '#/api';
+} from '#/api/modules/admin/products/industries';
 
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -26,7 +26,7 @@ import {
   getBrandSelectorApi,
   getIndustryRelationBrandsApi,
   updateIndustryApi,
-} from '#/api';
+} from '#/api/modules/admin/products/industries';
 
 import {
   appendIndustrySelectorOptions,

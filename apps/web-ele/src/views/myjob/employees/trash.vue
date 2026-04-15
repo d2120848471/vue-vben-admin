@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { GridPageParams } from '../shared';
 
-import type { UserListItem } from '#/api';
+import type { UserListItem } from '#/api/modules/admin/users';
 
 import { computed } from 'vue';
 
@@ -11,7 +11,10 @@ import { useAccessStore } from '@vben/stores';
 import { ElButton, ElMessage } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { getAdminUserTrashApi, restoreAdminUserApi } from '#/api';
+import {
+  getAdminUserTrashApi,
+  restoreAdminUserApi,
+} from '#/api/modules/admin/users';
 
 import {
   keywordMatch,

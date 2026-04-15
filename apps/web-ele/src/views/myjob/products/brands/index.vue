@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import type { GridPageParams } from '../../shared';
 
-import type { BrandListItem, SortAction } from '#/api';
+import type { SortAction } from '#/api/modules/admin/common';
+import type { BrandListItem } from '#/api/modules/admin/products/brands';
 
 import { computed, reactive, ref } from 'vue';
 
@@ -27,7 +28,7 @@ import {
   getBrandListApi,
   sortBrandApi,
   toggleBrandVisibilityApi,
-} from '#/api';
+} from '#/api/modules/admin/products/brands';
 
 import {
   formatDateTime,

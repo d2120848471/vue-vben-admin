@@ -9,7 +9,7 @@ import type {
   BrandCreatePayload,
   BrandListItem,
   BrandUpdatePayload,
-} from '#/api';
+} from '#/api/modules/admin/products/brands';
 
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -27,7 +27,11 @@ import {
   ElUpload,
 } from 'element-plus';
 
-import { addBrandApi, updateBrandApi, uploadBrandImageApi } from '#/api';
+import {
+  addBrandApi,
+  updateBrandApi,
+  uploadBrandImageApi,
+} from '#/api/modules/admin/products/brands';
 
 import {
   resolveProductImageUrl,

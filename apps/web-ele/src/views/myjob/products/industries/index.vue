@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import type { GridPageParams } from '../../shared';
 
-import type { IndustryListItem, SortAction } from '#/api';
+import type { SortAction } from '#/api/modules/admin/common';
+import type { IndustryListItem } from '#/api/modules/admin/products/industries';
 
 import { computed, ref } from 'vue';
 
@@ -18,7 +19,11 @@ import {
 } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { deleteIndustryApi, getIndustryListApi, sortIndustryApi } from '#/api';
+import {
+  deleteIndustryApi,
+  getIndustryListApi,
+  sortIndustryApi,
+} from '#/api/modules/admin/products/industries';
 
 import {
   formatDateTime,

@@ -5,7 +5,7 @@ import type {
   PurchaseLimitStrategyEnumItem,
   PurchaseLimitStrategyListItem,
   PurchaseLimitStrategyPayload,
-} from '#/api';
+} from '#/api/modules/admin/products/purchase-limits';
 
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -25,7 +25,7 @@ import {
   addPurchaseLimitStrategyApi,
   getPurchaseLimitStrategyEnumsApi,
   updatePurchaseLimitStrategyApi,
-} from '#/api';
+} from '#/api/modules/admin/products/purchase-limits';
 
 interface PurchaseLimitDialogState {
   limit_nums: number;

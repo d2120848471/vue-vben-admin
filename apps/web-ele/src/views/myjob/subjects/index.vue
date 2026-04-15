@@ -3,7 +3,7 @@ import type { FormInstance } from 'element-plus';
 
 import type { GridPageParams } from '../shared';
 
-import type { SubjectItem } from '#/api';
+import type { SubjectItem } from '#/api/modules/admin/subjects';
 
 import { computed, reactive, ref } from 'vue';
 
@@ -23,7 +23,11 @@ import {
 } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { addSubjectApi, getSubjectsApi, updateSubjectApi } from '#/api';
+import {
+  addSubjectApi,
+  getSubjectsApi,
+  updateSubjectApi,
+} from '#/api/modules/admin/subjects';
 
 import {
   formatDateTime,

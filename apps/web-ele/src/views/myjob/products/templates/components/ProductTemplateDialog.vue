@@ -5,7 +5,7 @@ import type {
   ProductTemplateListItem,
   ProductTemplatePayload,
   ProductTemplateValidateTypeItem,
-} from '#/api';
+} from '#/api/modules/admin/products/templates';
 
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -24,7 +24,7 @@ import {
   addProductTemplateApi,
   getProductTemplateValidateTypesApi,
   updateProductTemplateApi,
-} from '#/api';
+} from '#/api/modules/admin/products/templates';
 
 interface ProductTemplateDialogState {
   account_name: string;

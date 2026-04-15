@@ -1,5 +1,8 @@
 <script lang="ts" setup>
-import type { SystemSettingsGroup, SystemSettingsSavePayload } from '#/api';
+import type {
+  SystemSettingsGroup,
+  SystemSettingsSavePayload,
+} from '#/api/modules/admin/settings/system';
 
 import { computed, onMounted, reactive, ref } from 'vue';
 
@@ -16,7 +19,10 @@ import {
   ElTag,
 } from 'element-plus';
 
-import { getSystemSettingsApi, saveSystemSettingsApi } from '#/api';
+import {
+  getSystemSettingsApi,
+  saveSystemSettingsApi,
+} from '#/api/modules/admin/settings/system';
 
 import { MYJOB_PAGE_CONTENT_CLASS } from '../shared';
 

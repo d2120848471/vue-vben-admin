@@ -2,12 +2,12 @@
 import type { FormInstance } from 'element-plus';
 
 import type {
-  SubjectItem,
   SupplierPlatformDetailResult,
   SupplierPlatformListItem,
   SupplierPlatformPayload,
   SupplierPlatformTypeItem,
-} from '#/api';
+} from '#/api/modules/admin/products/suppliers';
+import type { SubjectItem } from '#/api/modules/admin/subjects';
 
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -27,7 +27,7 @@ import {
   addSupplierPlatformApi,
   getSupplierPlatformDetailApi,
   updateSupplierPlatformApi,
-} from '#/api';
+} from '#/api/modules/admin/products/suppliers';
 
 interface SupplierPlatformDialogState {
   backup_domain: string;

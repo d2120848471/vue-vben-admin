@@ -2,11 +2,11 @@
 import type { GridPageParams } from '../../shared';
 
 import type {
-  SubjectItem,
   SupplierPlatformListItem,
   SupplierPlatformRefreshResult,
   SupplierPlatformTypeItem,
-} from '#/api';
+} from '#/api/modules/admin/products/suppliers';
+import type { SubjectItem } from '#/api/modules/admin/subjects';
 
 import { computed, onMounted, reactive, ref } from 'vue';
 
@@ -18,11 +18,11 @@ import { ElButton, ElMessage, ElMessageBox } from 'element-plus';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   deleteSupplierPlatformApi,
-  getSubjectsApi,
   getSupplierPlatformListApi,
   getSupplierPlatformTypesApi,
   refreshSupplierPlatformBalanceApi,
-} from '#/api';
+} from '#/api/modules/admin/products/suppliers';
+import { getSubjectsApi } from '#/api/modules/admin/subjects';
 
 import {
   formatDateTime,

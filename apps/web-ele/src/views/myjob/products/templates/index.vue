@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { GridPageParams } from '../../shared';
 
-import type { ProductTemplateListItem } from '#/api';
+import type { ProductTemplateListItem } from '#/api/modules/admin/products/templates';
 
 import { computed, ref } from 'vue';
 
@@ -15,7 +15,7 @@ import {
   batchDeleteProductTemplateApi,
   deleteProductTemplateApi,
   getProductTemplateListApi,
-} from '#/api';
+} from '#/api/modules/admin/products/templates';
 
 import {
   formatDateTime,

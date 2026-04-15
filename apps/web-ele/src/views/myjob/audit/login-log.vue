@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import type { GridPageParams } from '../shared';
 
-import type { LoginLogItem } from '#/api';
+import type { LoginLogItem } from '#/api/modules/admin/logs';
 
 import { Page } from '@vben/common-ui';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { getLoginLogsApi } from '#/api';
+import { getLoginLogsApi } from '#/api/modules/admin/logs';
 
 import {
   extractDateRange,

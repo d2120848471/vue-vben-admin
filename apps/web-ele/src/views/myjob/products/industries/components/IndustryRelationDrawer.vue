@@ -1,10 +1,10 @@
 <script lang="ts" setup>
+import type { BrandSelectorItem } from '#/api/modules/admin/products/brands';
 import type {
-  BrandSelectorItem,
   IndustryListItem,
   IndustryRelationBrandItem,
-  SortAction,
-} from '#/api';
+} from '#/api/modules/admin/products/industries';
+import type { SortAction } from '#/api/modules/admin/common';
 
 import { computed, ref, watch } from 'vue';
 
@@ -30,7 +30,7 @@ import {
   getBrandSelectorApi,
   getIndustryRelationBrandsApi,
   sortIndustryRelationBrandApi,
-} from '#/api';
+} from '#/api/modules/admin/products/industries';
 
 import {
   appendIndustrySelectorOptions,

@@ -8,7 +8,7 @@ import type {
   ProductGoodsListItem,
   ProductGoodsStringOption,
   ProductGoodsTemplateOption,
-} from '#/api';
+} from '#/api/modules/admin/products/goods';
 
 import { computed, ref } from 'vue';
 
@@ -23,7 +23,7 @@ import {
   deleteProductGoodsApi,
   getProductGoodsFormOptionsApi,
   getProductGoodsListApi,
-} from '#/api';
+} from '#/api/modules/admin/products/goods';
 
 import {
   formatDateTime,

@@ -6,65 +6,89 @@ import {
   sendLoginSmsApi,
   verifyLoginSmsApi,
 } from '#/api/core/auth';
-import { getUserInfoApi } from '#/api/core/user';
-import * as adminApiModule from '#/api/modules/admin';
 import {
-  addAdminUserApi,
-  addBrandApi,
   addGroupApi,
-  addIndustryApi,
-  addIndustryRelationBrandsApi,
-  addProductTemplateApi,
-  addSubjectApi,
-  addSupplierPlatformApi,
-  batchDeleteProductTemplateApi,
-  cancelAdminUserBusinessApi,
-  deleteAdminUserApi,
-  deleteBrandApi,
   deleteGroupApi,
-  deleteIndustryApi,
-  deleteIndustryRelationBrandsApi,
-  deleteProductTemplateApi,
-  deleteSupplierPlatformApi,
-  getAdminUsersApi,
-  getAdminUserTrashApi,
-  getBrandChildrenApi,
-  getBrandListApi,
-  getBrandSelectorApi,
   getGroupAuthApi,
   getGroupsApi,
+  getPermissionTreeApi,
+  saveGroupAuthApi,
+  updateGroupStatusApi,
+} from '#/api/modules/admin/groups';
+import { getLoginLogsApi, getOperationLogsApi } from '#/api/modules/admin/logs';
+import {
+  addBrandApi,
+  deleteBrandApi,
+  getBrandChildrenApi,
+  getBrandListApi,
+  sortBrandApi,
+  toggleBrandVisibilityApi,
+  updateBrandApi,
+  uploadBrandImageApi,
+} from '#/api/modules/admin/products/brands';
+import {
+  addProductGoodsApi,
+  deleteProductGoodsApi,
+  getProductGoodsDetailApi,
+  getProductGoodsFormOptionsApi,
+  getProductGoodsListApi,
+  updateProductGoodsApi,
+} from '#/api/modules/admin/products/goods';
+import {
+  addIndustryApi,
+  addIndustryRelationBrandsApi,
+  deleteIndustryApi,
+  deleteIndustryRelationBrandsApi,
+  getBrandSelectorApi,
   getIndustryListApi,
   getIndustryRelationBrandsApi,
-  getLoginLogsApi,
-  getOperationLogsApi,
-  getPermissionTreeApi,
-  getProductTemplateListApi,
-  getProductTemplateValidateTypesApi,
-  getSMSConfigApi,
-  getSubjectsApi,
+  sortIndustryApi,
+  sortIndustryRelationBrandApi,
+  updateIndustryApi,
+} from '#/api/modules/admin/products/industries';
+import {
+  addPurchaseLimitStrategyApi,
+  deletePurchaseLimitStrategyApi,
+  getPurchaseLimitStrategyEnumsApi,
+  getPurchaseLimitStrategyListApi,
+  updatePurchaseLimitStrategyApi,
+  updatePurchaseLimitStrategyStatusApi,
+} from '#/api/modules/admin/products/purchase-limits';
+import {
+  addSupplierPlatformApi,
+  deleteSupplierPlatformApi,
   getSupplierPlatformDetailApi,
   getSupplierPlatformListApi,
   getSupplierPlatformTypesApi,
-  getSystemSettingsApi,
   refreshSupplierPlatformBalanceApi,
-  restoreAdminUserApi,
-  saveGroupAuthApi,
-  saveSMSConfigApi,
+  updateSupplierPlatformApi,
+} from '#/api/modules/admin/products/suppliers';
+import {
+  addProductTemplateApi,
+  batchDeleteProductTemplateApi,
+  deleteProductTemplateApi,
+  getProductTemplateListApi,
+  getProductTemplateValidateTypesApi,
+  updateProductTemplateApi,
+} from '#/api/modules/admin/products/templates';
+import { getSMSConfigApi, saveSMSConfigApi } from '#/api/modules/admin/settings/sms';
+import {
+  getSystemSettingsApi,
   saveSystemSettingsApi,
+} from '#/api/modules/admin/settings/system';
+import { addSubjectApi, getSubjectsApi } from '#/api/modules/admin/subjects';
+import { getUserInfoApi } from '#/api/core/user';
+import {
+  addAdminUserApi,
+  cancelAdminUserBusinessApi,
+  deleteAdminUserApi,
+  getAdminUsersApi,
+  getAdminUserTrashApi,
+  restoreAdminUserApi,
   setAdminUserBusinessApi,
-  sortBrandApi,
-  sortIndustryApi,
-  sortIndustryRelationBrandApi,
-  toggleBrandVisibilityApi,
   updateAdminUserNotifyApi,
   updateAdminUserStatusApi,
-  updateBrandApi,
-  updateGroupStatusApi,
-  updateIndustryApi,
-  updateProductTemplateApi,
-  updateSupplierPlatformApi,
-  uploadBrandImageApi,
-} from '#/api/modules/admin';
+} from '#/api/modules/admin/users';
 
 const requestClientMock = vi.hoisted(() => ({
   delete: vi.fn(),
@@ -489,13 +513,13 @@ describe('myjob api contract', () => {
     requestClientMock.request.mockResolvedValueOnce(undefined);
     requestClientMock.delete.mockResolvedValueOnce(undefined);
 
-    await (adminApiModule as any).getPurchaseLimitStrategyListApi({
+    await getPurchaseLimitStrategyListApi({
       keyword: '一天一号',
       page: 1,
       page_size: 20,
     });
-    await (adminApiModule as any).getPurchaseLimitStrategyEnumsApi();
-    await (adminApiModule as any).addPurchaseLimitStrategyApi({
+    await getPurchaseLimitStrategyEnumsApi();
+    await addPurchaseLimitStrategyApi({
       limit_nums: 2,
       limit_times: 2,
       limit_type: 2,
@@ -503,7 +527,7 @@ describe('myjob api contract', () => {
       period: 1,
       period_type: 1,
     });
-    await (adminApiModule as any).updatePurchaseLimitStrategyApi(31, {
+    await updatePurchaseLimitStrategyApi(31, {
       limit_nums: 0,
       limit_times: 5,
       limit_type: 2,
@@ -511,8 +535,8 @@ describe('myjob api contract', () => {
       period: 3,
       period_type: 2,
     });
-    await (adminApiModule as any).updatePurchaseLimitStrategyStatusApi(31, 0);
-    await (adminApiModule as any).deletePurchaseLimitStrategyApi(31);
+    await updatePurchaseLimitStrategyStatusApi(31, 0);
+    await deletePurchaseLimitStrategyApi(31);
 
     expect(requestClientMock.get).toHaveBeenNthCalledWith(
       1,
@@ -568,26 +592,12 @@ describe('myjob api contract', () => {
   });
 
   it('uses the product goods endpoints', async () => {
-    const api = adminApiModule as typeof adminApiModule & {
-      addProductGoodsApi?: (payload: Record<string, any>) => Promise<unknown>;
-      deleteProductGoodsApi?: (id: number) => Promise<unknown>;
-      getProductGoodsDetailApi?: (id: number) => Promise<unknown>;
-      getProductGoodsFormOptionsApi?: () => Promise<unknown>;
-      getProductGoodsListApi?: (
-        params: Record<string, any>,
-      ) => Promise<unknown>;
-      updateProductGoodsApi?: (
-        id: number,
-        payload: Record<string, any>,
-      ) => Promise<unknown>;
-    };
-
-    expect(typeof api.getProductGoodsListApi).toBe('function');
-    expect(typeof api.getProductGoodsDetailApi).toBe('function');
-    expect(typeof api.getProductGoodsFormOptionsApi).toBe('function');
-    expect(typeof api.addProductGoodsApi).toBe('function');
-    expect(typeof api.updateProductGoodsApi).toBe('function');
-    expect(typeof api.deleteProductGoodsApi).toBe('function');
+    expect(typeof getProductGoodsListApi).toBe('function');
+    expect(typeof getProductGoodsDetailApi).toBe('function');
+    expect(typeof getProductGoodsFormOptionsApi).toBe('function');
+    expect(typeof addProductGoodsApi).toBe('function');
+    expect(typeof updateProductGoodsApi).toBe('function');
+    expect(typeof deleteProductGoodsApi).toBe('function');
 
     requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
     requestClientMock.get.mockResolvedValueOnce({
@@ -616,7 +626,7 @@ describe('myjob api contract', () => {
     requestClientMock.put.mockResolvedValueOnce(undefined);
     requestClientMock.delete.mockResolvedValueOnce(undefined);
 
-    await api.getProductGoodsListApi?.({
+    await getProductGoodsListApi({
       brand_id: 35,
       goods_type: 'card_secret',
       has_tax: '1',
@@ -625,9 +635,9 @@ describe('myjob api contract', () => {
       page_size: 10,
       status: '0',
     });
-    await api.getProductGoodsDetailApi?.(21);
-    await api.getProductGoodsFormOptionsApi?.();
-    await api.addProductGoodsApi?.({
+    await getProductGoodsDetailApi(21);
+    await getProductGoodsFormOptionsApi();
+    await addProductGoodsApi({
       balance_limit: '0.0000',
       brand_id: 35,
       default_sell_price: '19.9000',
@@ -647,7 +657,7 @@ describe('myjob api contract', () => {
       supply_type: 'channel',
       terminal_price_limit: '29.9000',
     });
-    await api.updateProductGoodsApi?.(21, {
+    await updateProductGoodsApi(21, {
       balance_limit: '10.0000',
       brand_id: 36,
       default_sell_price: '29.9000',
@@ -667,7 +677,7 @@ describe('myjob api contract', () => {
       supply_type: 'channel',
       terminal_price_limit: '',
     });
-    await api.deleteProductGoodsApi?.(21);
+    await deleteProductGoodsApi(21);
 
     expect(requestClientMock.get).toHaveBeenNthCalledWith(
       1,
