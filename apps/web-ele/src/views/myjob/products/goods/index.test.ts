@@ -118,6 +118,7 @@ const apiMocks = vi.hoisted(() => ({
   getProductGoodsFormOptionsApi: vi.fn(),
   getProductGoodsListApi: vi.fn(),
   getSubjectsApi: vi.fn(),
+  updateProductGoodsStatusApi: vi.fn(),
   updateProductGoodsApi: vi.fn(),
 }));
 
@@ -134,7 +135,8 @@ const testState = vi.hoisted(() => ({
   accessCodes: ['product.goods'],
 }));
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/goods', () => apiMocks);
+vi.mock('#/api/modules/admin/subjects', () => apiMocks);
 
 vi.mock('@vben/common-ui', () => ({
   Page: defineComponent({
@@ -435,6 +437,43 @@ vi.mock('element-plus', () => {
     },
   });
 
+  const ElSwitch = defineComponent({
+    name: 'ElSwitchStub',
+    props: {
+      activeValue: {
+        default: 1,
+        type: [Number, String],
+      },
+      inactiveValue: {
+        default: 0,
+        type: [Number, String],
+      },
+      modelValue: {
+        default: 0,
+        type: [Number, String],
+      },
+    },
+    emits: ['change', 'update:modelValue'],
+    setup(props, { attrs, emit }) {
+      return () =>
+        h(
+          'button',
+          {
+            ...attrs,
+            onClick: () => {
+              const nextValue =
+                props.modelValue === props.activeValue
+                  ? props.inactiveValue
+                  : props.activeValue;
+              emit('update:modelValue', nextValue);
+              emit('change', nextValue);
+            },
+          },
+          props.modelValue === props.activeValue ? '启用' : '停用',
+        );
+    },
+  });
+
   const ElCascader = defineComponent({
     name: 'ElCascaderStub',
     props: {
@@ -485,6 +524,7 @@ vi.mock('element-plus', () => {
     },
     ElOption,
     ElSelect,
+    ElSwitch,
   };
 });
 
@@ -568,6 +608,12 @@ describe('product goods page', () => {
       id: 2,
     });
     apiMocks.updateProductGoodsApi.mockResolvedValue(undefined);
+    apiMocks.updateProductGoodsStatusApi.mockResolvedValue({
+      failed: [],
+      failed_count: 0,
+      success_count: 1,
+      success_ids: [1],
+    });
     apiMocks.deleteProductGoodsApi.mockResolvedValue(undefined);
   });
 
@@ -629,6 +675,35 @@ describe('product goods page', () => {
       'http://127.0.0.1:8080/uploads/brands/tencent.png',
     );
     expect(view.root.textContent).toContain('含税');
+  });
+
+  it('toggles goods status from the list', async () => {
+    const view = await renderPage();
+    mountedRoots.push(view);
+
+    findRowButton(view.root, 1, '启用').click();
+    await flushPromises();
+
+    expect(apiMocks.updateProductGoodsStatusApi).toHaveBeenCalledWith([1], 0);
+    expect(gridReloadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefers the failed reason when status update reports failures', async () => {
+    const { ElMessage } = await import('element-plus');
+    apiMocks.updateProductGoodsStatusApi.mockResolvedValueOnce({
+      failed: [{ id: 1, reason: '商品不存在' }],
+      failed_count: 1,
+      success_count: 0,
+      success_ids: [],
+    });
+    const view = await renderPage();
+    mountedRoots.push(view);
+
+    findRowButton(view.root, 1, '启用').click();
+    await flushPromises();
+
+    expect(ElMessage.error).toHaveBeenCalledWith('商品不存在');
+    expect(gridReloadMock).toHaveBeenCalledTimes(1);
   });
 
   it('disables overflow clipping for the product info column so row height can grow', async () => {

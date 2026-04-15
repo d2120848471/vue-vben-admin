@@ -1,5 +1,4 @@
 import type { PagedResult } from '../common';
-
 import type { UserFormPayload, UserListItem, UserListQuery } from './types';
 
 import { requestClient } from '#/api/request';

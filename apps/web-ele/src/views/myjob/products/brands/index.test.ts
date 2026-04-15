@@ -103,7 +103,7 @@ function cloneRows<T>(value: T): T {
   return structuredClone(toRaw(value));
 }
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/brands', () => apiMocks);
 
 vi.mock('@vben/common-ui', () => ({
   Page: defineComponent({

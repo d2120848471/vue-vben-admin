@@ -1,5 +1,4 @@
 import type { PagedResult, SortAction } from '../../common';
-
 import type {
   BrandCreatePayload,
   BrandListItem,

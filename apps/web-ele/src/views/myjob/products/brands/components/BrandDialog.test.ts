@@ -16,7 +16,7 @@ const uploadState = vi.hoisted(() => ({
   instances: [] as Array<Record<string, any>>,
 }));
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/brands', () => apiMocks);
 
 vi.mock('@vben/hooks', () => ({
   useAppConfig: () => ({

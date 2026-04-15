@@ -1,7 +1,4 @@
-import type {
-  SystemSettingsResult,
-  SystemSettingsSavePayload,
-} from './types';
+import type { SystemSettingsResult, SystemSettingsSavePayload } from './types';
 
 import { requestClient } from '#/api/request';
 

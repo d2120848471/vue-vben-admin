@@ -1,5 +1,4 @@
 import type { ListQuery, PagedResult } from '../common';
-
 import type {
   GroupAuthResult,
   GroupListItem,

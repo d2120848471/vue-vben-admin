@@ -83,6 +83,18 @@ export interface ProductGoodsPayload {
   terminal_price_limit: string;
 }
 
+export interface ProductGoodsStatusFailedItem {
+  id: number;
+  reason: string;
+}
+
+export interface ProductGoodsStatusResult {
+  failed: ProductGoodsStatusFailedItem[];
+  failed_count: number;
+  success_count: number;
+  success_ids: number[];
+}
+
 export interface ProductGoodsBrandOption {
   children: ProductGoodsBrandOption[];
   id: number;

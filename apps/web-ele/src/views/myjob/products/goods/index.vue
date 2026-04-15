@@ -10,19 +10,26 @@ import type {
   ProductGoodsTemplateOption,
 } from '#/api/modules/admin/products/goods';
 
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 import { useAppConfig } from '@vben/hooks';
 import { useAccessStore } from '@vben/stores';
 
-import { ElButton, ElImage, ElMessage, ElMessageBox } from 'element-plus';
+import {
+  ElButton,
+  ElImage,
+  ElMessage,
+  ElMessageBox,
+  ElSwitch,
+} from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   deleteProductGoodsApi,
   getProductGoodsFormOptionsApi,
   getProductGoodsListApi,
+  updateProductGoodsStatusApi,
 } from '#/api/modules/admin/products/goods';
 
 import {
@@ -61,6 +68,7 @@ const dialogVisible = ref(false);
 const editingGoods = ref<null | ProductGoodsListItem>(null);
 const productRows = ref<ProductGoodsListItem[]>([]);
 const formOptionsLoaded = ref(false);
+const loadingStatusIds = reactive<Record<number, boolean>>({});
 
 const brandTreeOptions = ref<ProductGoodsBrandOption[]>([]);
 const brandFilterOptions = ref<Array<{ label: string; value: number }>>([]);
@@ -211,6 +219,29 @@ async function handleDelete(row: ProductGoodsListItem) {
   await deleteProductGoodsApi(row.id);
   ElMessage.success('商品已删除');
   await gridApi.reload();
+}
+
+// 状态切换只走独立接口，避免编辑弹窗提交时误改启停状态。
+async function handleStatusChange(
+  row: ProductGoodsListItem,
+  nextStatus: number | string,
+) {
+  const normalizedStatus = Number(nextStatus);
+  loadingStatusIds[row.id] = true;
+  try {
+    const result = await updateProductGoodsStatusApi(
+      [row.id],
+      normalizedStatus,
+    );
+    if ((result?.failed_count ?? 0) > 0) {
+      ElMessage.error(result.failed?.[0]?.reason || '商品状态更新失败');
+    } else {
+      ElMessage.success(normalizedStatus === 1 ? '商品已启用' : '商品已停用');
+    }
+    await gridApi.reload();
+  } finally {
+    loadingStatusIds[row.id] = false;
+  }
 }
 
 function formatAmount(value: string) {
@@ -490,7 +521,19 @@ async function handleDialogSaved() {
       </template>
 
       <template #status="{ row }">
+        <ElSwitch
+          v-if="canManage"
+          :active-value="1"
+          :inactive-value="0"
+          :loading="loadingStatusIds[row.id]"
+          :model-value="row.status"
+          active-text="启用"
+          inactive-text="停用"
+          inline-prompt
+          @change="(value) => handleStatusChange(row, Number(value))"
+        />
         <span
+          v-else
           class="goods-status"
           :class="
             row.status === 1

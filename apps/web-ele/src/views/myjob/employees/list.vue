@@ -4,10 +4,7 @@ import type { FormInstance } from 'element-plus';
 import type { GridPageParams } from '../shared';
 
 import type { GroupListItem } from '#/api/modules/admin/groups';
-import type {
-  UserFormPayload,
-  UserListItem,
-} from '#/api/modules/admin/users';
+import type { UserFormPayload, UserListItem } from '#/api/modules/admin/users';
 
 import { computed, onMounted, reactive, ref } from 'vue';
 
@@ -29,6 +26,7 @@ import {
 } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
+import { getGroupsApi } from '#/api/modules/admin/groups';
 import {
   addAdminUserApi,
   cancelAdminUserBusinessApi,
@@ -39,7 +37,6 @@ import {
   updateAdminUserNotifyApi,
   updateAdminUserStatusApi,
 } from '#/api/modules/admin/users';
-import { getGroupsApi } from '#/api/modules/admin/groups';
 
 import {
   keywordMatch,

@@ -6,6 +6,7 @@ import {
   sendLoginSmsApi,
   verifyLoginSmsApi,
 } from '#/api/core/auth';
+import { getUserInfoApi } from '#/api/core/user';
 import {
   addGroupApi,
   deleteGroupApi,
@@ -33,6 +34,7 @@ import {
   getProductGoodsFormOptionsApi,
   getProductGoodsListApi,
   updateProductGoodsApi,
+  updateProductGoodsStatusApi,
 } from '#/api/modules/admin/products/goods';
 import {
   addIndustryApi,
@@ -71,13 +73,15 @@ import {
   getProductTemplateValidateTypesApi,
   updateProductTemplateApi,
 } from '#/api/modules/admin/products/templates';
-import { getSMSConfigApi, saveSMSConfigApi } from '#/api/modules/admin/settings/sms';
+import {
+  getSMSConfigApi,
+  saveSMSConfigApi,
+} from '#/api/modules/admin/settings/sms';
 import {
   getSystemSettingsApi,
   saveSystemSettingsApi,
 } from '#/api/modules/admin/settings/system';
 import { addSubjectApi, getSubjectsApi } from '#/api/modules/admin/subjects';
-import { getUserInfoApi } from '#/api/core/user';
 import {
   addAdminUserApi,
   cancelAdminUserBusinessApi,
@@ -597,6 +601,7 @@ describe('myjob api contract', () => {
     expect(typeof getProductGoodsFormOptionsApi).toBe('function');
     expect(typeof addProductGoodsApi).toBe('function');
     expect(typeof updateProductGoodsApi).toBe('function');
+    expect(typeof updateProductGoodsStatusApi).toBe('function');
     expect(typeof deleteProductGoodsApi).toBe('function');
 
     requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
@@ -624,6 +629,12 @@ describe('myjob api contract', () => {
       id: 21,
     });
     requestClientMock.put.mockResolvedValueOnce(undefined);
+    requestClientMock.request.mockResolvedValueOnce({
+      failed: [],
+      failed_count: 0,
+      success_count: 1,
+      success_ids: [21],
+    });
     requestClientMock.delete.mockResolvedValueOnce(undefined);
 
     await getProductGoodsListApi({
@@ -677,6 +688,7 @@ describe('myjob api contract', () => {
       supply_type: 'channel',
       terminal_price_limit: '',
     });
+    await updateProductGoodsStatusApi([21], 0);
     await deleteProductGoodsApi(21);
 
     expect(requestClientMock.get).toHaveBeenNthCalledWith(
@@ -748,6 +760,14 @@ describe('myjob api contract', () => {
         subject_id: null,
         supply_type: 'channel',
         terminal_price_limit: '',
+      },
+    );
+    expect(requestClientMock.request).toHaveBeenNthCalledWith(
+      1,
+      '/admin/products/status',
+      {
+        data: { ids: [21], status: 0 },
+        method: 'PATCH',
       },
     );
     expect(requestClientMock.delete).toHaveBeenNthCalledWith(

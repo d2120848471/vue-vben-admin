@@ -42,7 +42,7 @@ const apiMocks = vi.hoisted(() => ({
 
 const gridReloadMock = vi.hoisted(() => vi.fn());
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/industries', () => apiMocks);
 
 vi.mock('@vben/common-ui', () => ({
   Page: defineComponent({

@@ -1,5 +1,4 @@
 import type { PagedResult } from '../../common';
-
 import type {
   SupplierPlatformDetailResult,
   SupplierPlatformListItem,

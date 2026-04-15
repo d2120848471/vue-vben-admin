@@ -94,7 +94,8 @@ const testState = vi.hoisted(() => ({
   accessCodes: ['supplier.index'],
 }));
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/suppliers', () => apiMocks);
+vi.mock('#/api/modules/admin/subjects', () => apiMocks);
 
 vi.mock('@vben/common-ui', () => ({
   Page: defineComponent({

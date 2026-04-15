@@ -13,7 +13,8 @@ const apiMocks = vi.hoisted(() => ({
   updateProductGoodsApi: vi.fn(),
 }));
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/goods', () => apiMocks);
+vi.mock('#/api/modules/admin/subjects', () => apiMocks);
 
 vi.mock('element-plus', () => {
   const ElButton = defineComponent({
@@ -143,10 +144,7 @@ vi.mock('element-plus', () => {
               if (Array.isArray(props.modelValue)) {
                 emit(
                   'update:modelValue',
-                  nextValue
-                    .split(',')
-                    .filter(Boolean)
-                    .map(Number),
+                  nextValue.split(',').filter(Boolean).map(Number),
                 );
                 return;
               }

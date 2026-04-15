@@ -59,7 +59,7 @@ const testState = vi.hoisted(() => ({
   selectedRows: [] as Array<{ id: number }>,
 }));
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/templates', () => apiMocks);
 
 vi.mock('@vben/common-ui', () => ({
   Page: defineComponent({

@@ -17,7 +17,7 @@ const messageMocks = vi.hoisted(() => ({
   warning: vi.fn(),
 }));
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/settings/system', () => apiMocks);
 
 vi.mock('@vben/common-ui', () => ({
   Page: defineComponent({

@@ -12,7 +12,7 @@ const apiMocks = vi.hoisted(() => ({
   updatePurchaseLimitStrategyApi: vi.fn(),
 }));
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/purchase-limits', () => apiMocks);
 
 vi.mock('element-plus', () => {
   const ElButton = defineComponent({

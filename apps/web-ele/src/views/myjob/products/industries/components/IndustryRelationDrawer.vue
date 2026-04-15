@@ -1,10 +1,10 @@
 <script lang="ts" setup>
+import type { SortAction } from '#/api/modules/admin/common';
 import type { BrandSelectorItem } from '#/api/modules/admin/products/brands';
 import type {
   IndustryListItem,
   IndustryRelationBrandItem,
 } from '#/api/modules/admin/products/industries';
-import type { SortAction } from '#/api/modules/admin/common';
 
 import { computed, ref, watch } from 'vue';
 
@@ -278,8 +278,8 @@ watch(
           @keyup.enter="loadRelationRows(relationKeyword.trim())"
         />
         <ElButton @click="loadRelationRows(relationKeyword.trim())">
-搜索
-</ElButton>
+          搜索
+        </ElButton>
       </div>
 
       <div

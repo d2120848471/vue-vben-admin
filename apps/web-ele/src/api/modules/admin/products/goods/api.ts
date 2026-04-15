@@ -1,14 +1,16 @@
 import type { PagedResult } from '../../common';
-
 import type {
   ProductGoodsDetailResult,
   ProductGoodsFormOptionsResult,
   ProductGoodsListItem,
   ProductGoodsListQuery,
   ProductGoodsPayload,
+  ProductGoodsStatusResult,
 } from './types';
 
 import { requestClient } from '#/api/request';
+
+import { patchAdminApi } from '../../common';
 
 /**
  * 商品管理-商品列表：获取商品列表（分页/筛选）
@@ -61,6 +63,20 @@ export async function updateProductGoodsApi(
   data: ProductGoodsPayload,
 ) {
   return requestClient.put(`/admin/products/${id}`, data);
+}
+
+/**
+ * 商品管理-商品列表：启用/停用商品（批量）
+ * PATCH /admin/products/status
+ */
+export async function updateProductGoodsStatusApi(
+  ids: number[],
+  status: number,
+) {
+  return patchAdminApi<ProductGoodsStatusResult>('/admin/products/status', {
+    ids,
+    status,
+  });
 }
 
 /**

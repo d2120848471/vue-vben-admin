@@ -12,7 +12,7 @@ const apiMocks = vi.hoisted(() => ({
   updateProductTemplateApi: vi.fn(),
 }));
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/templates', () => apiMocks);
 
 vi.mock('element-plus', () => {
   const ElButton = defineComponent({

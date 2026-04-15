@@ -64,7 +64,7 @@ const testState = vi.hoisted(() => ({
   accessCodes: ['product.purchase_limit'],
 }));
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/purchase-limits', () => apiMocks);
 
 vi.mock('@vben/common-ui', () => ({
   Page: defineComponent({
@@ -93,7 +93,9 @@ vi.mock('#/adapter/vxe-table', () => ({
             ...fixtures.rows.map((row) =>
               h('div', { 'data-row-id': String(row.id) }, [
                 h('div', { 'data-cell': 'status' }, [slots.status?.({ row })]),
-                h('div', { 'data-cell': 'actions' }, [slots.actions?.({ row })]),
+                h('div', { 'data-cell': 'actions' }, [
+                  slots.actions?.({ row }),
+                ]),
               ]),
             ),
           ]);
@@ -417,7 +419,10 @@ describe('purchase limit strategies page', () => {
     nameInput.value = '新用户';
     nameInput.dispatchEvent(new Event('input'));
 
-    const periodInput = findInput(view.root, 'input[data-test="strategy-period"]');
+    const periodInput = findInput(
+      view.root,
+      'input[data-test="strategy-period"]',
+    );
     periodInput.value = '30';
     periodInput.dispatchEvent(new Event('input'));
 

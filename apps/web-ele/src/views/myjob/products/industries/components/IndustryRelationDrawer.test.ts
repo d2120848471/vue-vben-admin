@@ -14,7 +14,7 @@ const apiMocks = vi.hoisted(() => ({
   sortIndustryRelationBrandApi: vi.fn(),
 }));
 
-vi.mock('#/api', () => apiMocks);
+vi.mock('#/api/modules/admin/products/industries', () => apiMocks);
 
 vi.mock('@vben/hooks', () => ({
   useAppConfig: () => ({
