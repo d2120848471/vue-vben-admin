@@ -25,4 +25,3 @@ export interface LogQuery extends ListQuery {
   keyword?: string;
   start_time?: string;
 }
-

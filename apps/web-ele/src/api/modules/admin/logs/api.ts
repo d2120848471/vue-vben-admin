@@ -1,5 +1,4 @@
 import type { PagedResult } from '../common';
-
 import type { LoginLogItem, LogQuery, OperationLogItem } from './types';
 
 import { requestClient } from '#/api/request';
@@ -26,4 +25,3 @@ export async function getLoginLogsApi(params: LogQuery) {
     params,
   });
 }
-
