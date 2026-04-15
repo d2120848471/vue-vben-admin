@@ -1,18 +1,7 @@
 <script lang="ts" setup>
-import type {
-  FormInstance,
-  UploadProps,
-  UploadRequestOptions,
-} from 'element-plus';
-
 import type { GridPageParams } from '../../shared';
 
-import type {
-  BrandCreatePayload,
-  BrandListItem,
-  BrandUpdatePayload,
-  SortAction,
-} from '#/api';
+import type { BrandListItem, SortAction } from '#/api';
 
 import { computed, reactive, ref } from 'vue';
 
@@ -23,29 +12,21 @@ import { useAccessStore } from '@vben/stores';
 
 import {
   ElButton,
-  ElDialog,
-  ElForm,
-  ElFormItem,
   ElImage,
-  ElInput,
   ElMessage,
   ElMessageBox,
   ElSwitch,
   ElTag,
   ElTooltip,
-  ElUpload,
 } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  addBrandApi,
   deleteBrandApi,
   getBrandChildrenApi,
   getBrandListApi,
   sortBrandApi,
   toggleBrandVisibilityApi,
-  updateBrandApi,
-  uploadBrandImageApi,
 } from '#/api';
 
 import {
@@ -66,20 +47,9 @@ import {
   getBrandTreePath,
   mergeBrandChildren,
   resolveProductImageUrl,
-  shouldShowBrandAssetFields,
 } from '../shared';
+import BrandDialog from './components/BrandDialog.vue';
 
-interface BrandDialogState {
-  credential_image: string;
-  description: string;
-  icon: string;
-  is_visible: number;
-  name: string;
-  parent_id: number;
-  parent_name: string;
-}
-
-const IMAGE_ACCEPT = 'image/png,image/jpeg,image/jpg,image/webp';
 const BrandSortTopIcon = createIconifyIcon('lucide:chevrons-up');
 const BrandSortUpIcon = createIconifyIcon('lucide:arrow-up');
 const BrandSortDownIcon = createIconifyIcon('lucide:arrow-down');
@@ -100,36 +70,13 @@ const canManage = computed(() =>
   accessStore.accessCodes.includes('product.brand'),
 );
 
-const formRef = ref<FormInstance>();
 const dialogVisible = ref(false);
-const dialogLoading = ref(false);
 const editingBrand = ref<BrandListItem | null>(null);
+const dialogParentId = ref(0);
+const dialogParentName = ref('一级品牌');
+const dialogCreateLevelLabel = ref('一级品牌');
 const brandRoots = ref<BrandListItem[]>([]);
 const childCache = reactive<Record<number, BrandListItem[]>>({});
-const uploadLoading = reactive({
-  credential_image: false,
-  icon: false,
-});
-
-const dialogForm = reactive<BrandDialogState>({
-  credential_image: '',
-  description: '',
-  icon: '',
-  is_visible: 1,
-  name: '',
-  parent_id: 0,
-  parent_name: '一级品牌',
-});
-
-function resetDialogForm() {
-  dialogForm.credential_image = '';
-  dialogForm.description = '';
-  dialogForm.icon = '';
-  dialogForm.is_visible = 1;
-  dialogForm.name = '';
-  dialogForm.parent_id = 0;
-  dialogForm.parent_name = '一级品牌';
-}
 
 function resolveParentName(parentId: number) {
   if (parentId === 0) {
@@ -156,87 +103,26 @@ function syncBrandRoots(items: BrandListItem[]) {
 
 function openCreateRootDialog() {
   editingBrand.value = null;
-  resetDialogForm();
+  dialogParentId.value = 0;
+  dialogParentName.value = '一级品牌';
+  dialogCreateLevelLabel.value = '一级品牌';
   dialogVisible.value = true;
 }
 
 function openCreateChildDialog(row: BrandListItem) {
   editingBrand.value = null;
-  resetDialogForm();
-  dialogForm.parent_id = row.id;
-  dialogForm.parent_name = row.name;
+  dialogParentId.value = row.id;
+  dialogParentName.value = row.name;
+  dialogCreateLevelLabel.value = getCreateDialogLevelLabel(row.id);
   dialogVisible.value = true;
 }
 
 function openEditDialog(row: BrandListItem) {
   editingBrand.value = row;
-  dialogForm.credential_image = row.credential_image || '';
-  dialogForm.description = row.description || '';
-  dialogForm.icon = row.icon || '';
-  dialogForm.is_visible = row.is_visible;
-  dialogForm.name = row.name;
-  dialogForm.parent_id = row.parent_id;
-  dialogForm.parent_name = resolveParentName(row.parent_id);
+  dialogParentId.value = row.parent_id;
+  dialogParentName.value = resolveParentName(row.parent_id);
+  dialogCreateLevelLabel.value = getCreateDialogLevelLabel(row.parent_id);
   dialogVisible.value = true;
-}
-
-function buildCreatePayload(): BrandCreatePayload {
-  return {
-    credential_image: dialogForm.credential_image,
-    description: dialogForm.description.trim(),
-    icon: dialogForm.icon,
-    is_visible: dialogForm.is_visible,
-    name: dialogForm.name.trim(),
-    parent_id: dialogForm.parent_id,
-  };
-}
-
-function buildUpdatePayload(): BrandUpdatePayload {
-  return {
-    credential_image: dialogForm.credential_image,
-    description: dialogForm.description.trim(),
-    icon: dialogForm.icon,
-    is_visible: dialogForm.is_visible,
-    name: dialogForm.name.trim(),
-  };
-}
-
-const beforeImageUpload: UploadProps['beforeUpload'] = (rawFile) => {
-  const isImage = rawFile.type.startsWith('image/');
-  const isLt2M = rawFile.size / 1024 / 1024 <= 2;
-
-  if (!isImage) {
-    ElMessage.error('只能上传图片文件');
-    return false;
-  }
-  if (!isLt2M) {
-    ElMessage.error('图片大小不能超过 2MB');
-    return false;
-  }
-  return true;
-};
-
-async function uploadField(
-  field: 'credential_image' | 'icon',
-  options: UploadRequestOptions,
-) {
-  const uploadType = field === 'icon' ? 'icon' : 'credential';
-  uploadLoading[field] = true;
-  try {
-    const formData = new FormData();
-    formData.append('type', uploadType);
-    formData.append('file', options.file);
-    const result = await uploadBrandImageApi(formData);
-    dialogForm[field] = result.url;
-    ElMessage.success(field === 'icon' ? '品牌图标已上传' : '资质图片已上传');
-    options.onSuccess?.(result);
-  } finally {
-    uploadLoading[field] = false;
-  }
-}
-
-function clearUploadedField(field: 'credential_image' | 'icon') {
-  dialogForm[field] = '';
 }
 
 async function refreshParentBranch(parentId: number) {
@@ -283,41 +169,6 @@ async function refreshParentBranch(parentId: number) {
       continue;
     }
     await gridApi.grid?.setTreeExpand?.(currentRow, true);
-  }
-}
-
-async function submitDialog() {
-  if (!formRef.value) {
-    return;
-  }
-  const valid = await formRef.value.validate().catch(() => false);
-  if (!valid) {
-    return;
-  }
-
-  try {
-    dialogLoading.value = true;
-
-    // 品牌弹窗同时覆盖一级到三级场景，请求体只在新增/编辑时切分一次。
-    if (editingBrand.value) {
-      await updateBrandApi(editingBrand.value.id, buildUpdatePayload());
-      await (editingBrand.value.parent_id === 0
-        ? gridApi.reload()
-        : refreshParentBranch(editingBrand.value.parent_id));
-      ElMessage.success('品牌已更新');
-    } else {
-      await addBrandApi(buildCreatePayload());
-      await (dialogForm.parent_id === 0
-        ? gridApi.reload()
-        : refreshParentBranch(dialogForm.parent_id));
-      ElMessage.success(
-        `${getCreateDialogLevelLabel(dialogForm.parent_id)}已新增`,
-      );
-    }
-
-    dialogVisible.value = false;
-  } finally {
-    dialogLoading.value = false;
   }
 }
 
@@ -390,6 +241,20 @@ function getCreateDialogLevelLabel(parentId: number) {
   }
   const parentDepth = getBrandTreeDepth(brandRoots.value, parentId) ?? 1;
   return getBrandTreeNodePresentation(parentDepth).levelLabel;
+}
+
+function handleDialogVisibleChange(value: boolean) {
+  dialogVisible.value = value;
+  if (!value) {
+    editingBrand.value = null;
+    dialogParentId.value = 0;
+    dialogParentName.value = '一级品牌';
+    dialogCreateLevelLabel.value = '一级品牌';
+  }
+}
+
+async function handleDialogSaved(parentId: number) {
+  await (parentId === 0 ? gridApi.reload() : refreshParentBranch(parentId));
 }
 
 const [Grid, gridApi] = useVbenVxeGrid<BrandListItem>({
@@ -495,16 +360,6 @@ const [Grid, gridApi] = useVbenVxeGrid<BrandListItem>({
     },
   },
 });
-
-const dialogTitle = computed(() => {
-  if (editingBrand.value) {
-    return '编辑品牌';
-  }
-  return `新增${getCreateDialogLevelLabel(dialogForm.parent_id)}`;
-});
-const showBrandAssetFields = computed(() =>
-  shouldShowBrandAssetFields(dialogForm.parent_id),
-);
 
 function resolveImageUrl(url: string) {
   return resolveProductImageUrl(url, apiURL);
@@ -692,115 +547,15 @@ function resolveImageUrl(url: string) {
       </template>
     </Grid>
 
-    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="640px">
-      <ElForm ref="formRef" :model="dialogForm" label-width="96px">
-        <ElFormItem
-          v-if="dialogForm.parent_id > 0 || editingBrand?.parent_id"
-          label="父级品牌"
-        >
-          <ElInput :model-value="dialogForm.parent_name" disabled />
-        </ElFormItem>
-        <ElFormItem
-          label="品牌名称"
-          prop="name"
-          :rules="[
-            { required: true, message: '请输入品牌名称', trigger: 'blur' },
-          ]"
-        >
-          <ElInput v-model="dialogForm.name" placeholder="请输入品牌名称" />
-        </ElFormItem>
-        <ElFormItem label="显示状态" prop="is_visible">
-          <ElSwitch
-            v-model="dialogForm.is_visible"
-            :active-value="1"
-            :inactive-value="0"
-            inline-prompt
-            active-text="显示"
-            inactive-text="隐藏"
-          />
-        </ElFormItem>
-        <ElFormItem v-if="showBrandAssetFields" label="品牌图标">
-          <div class="flex w-full items-center gap-3">
-            <ElUpload
-              :accept="IMAGE_ACCEPT"
-              :before-upload="beforeImageUpload"
-              :http-request="(options) => uploadField('icon', options)"
-              :show-file-list="false"
-            >
-              <ElButton :loading="uploadLoading.icon">上传图标</ElButton>
-            </ElUpload>
-            <ElButton
-              v-if="dialogForm.icon"
-              link
-              type="danger"
-              @click="clearUploadedField('icon')"
-            >
-              清空
-            </ElButton>
-            <ElImage
-              v-if="dialogForm.icon"
-              :preview-src-list="[resolveImageUrl(dialogForm.icon)]"
-              :src="resolveImageUrl(dialogForm.icon)"
-              fit="cover"
-              class="h-12 w-12 rounded-md"
-            />
-            <span v-else class="text-text-secondary">暂未上传</span>
-          </div>
-        </ElFormItem>
-        <ElFormItem v-if="showBrandAssetFields" label="资质图片">
-          <div class="flex w-full items-center gap-3">
-            <ElUpload
-              :accept="IMAGE_ACCEPT"
-              :before-upload="beforeImageUpload"
-              :http-request="
-                (options) => uploadField('credential_image', options)
-              "
-              :show-file-list="false"
-            >
-              <ElButton :loading="uploadLoading.credential_image">
-                上传资质
-              </ElButton>
-            </ElUpload>
-            <ElButton
-              v-if="dialogForm.credential_image"
-              link
-              type="danger"
-              @click="clearUploadedField('credential_image')"
-            >
-              清空
-            </ElButton>
-            <ElImage
-              v-if="dialogForm.credential_image"
-              :preview-src-list="[resolveImageUrl(dialogForm.credential_image)]"
-              :src="resolveImageUrl(dialogForm.credential_image)"
-              fit="cover"
-              class="h-12 w-12 rounded-md"
-            />
-            <span v-else class="text-text-secondary">暂未上传</span>
-          </div>
-        </ElFormItem>
-        <ElFormItem label="品牌描述">
-          <ElInput
-            v-model="dialogForm.description"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入品牌描述"
-          />
-        </ElFormItem>
-      </ElForm>
-      <template #footer>
-        <div class="flex justify-end gap-3">
-          <ElButton @click="dialogVisible = false">取消</ElButton>
-          <ElButton
-            :loading="dialogLoading"
-            type="primary"
-            @click="submitDialog"
-          >
-            保存
-          </ElButton>
-        </div>
-      </template>
-    </ElDialog>
+    <BrandDialog
+      :create-level-label="dialogCreateLevelLabel"
+      :editing-brand="editingBrand"
+      :parent-id="dialogParentId"
+      :parent-name="dialogParentName"
+      :visible="dialogVisible"
+      @saved="handleDialogSaved"
+      @update:visible="handleDialogVisibleChange"
+    />
   </Page>
 </template>
 

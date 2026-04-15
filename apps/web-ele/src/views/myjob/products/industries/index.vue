@@ -1,53 +1,24 @@
 <script lang="ts" setup>
-import type { FormInstance } from 'element-plus';
-
 import type { GridPageParams } from '../../shared';
 
-import type {
-  BrandSelectorItem,
-  IndustryListItem,
-  IndustryPayload,
-  IndustryRelationBrandItem,
-  SortAction,
-} from '#/api';
+import type { IndustryListItem, SortAction } from '#/api';
 
-import { computed, reactive, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
-import { useAppConfig } from '@vben/hooks';
 import { createIconifyIcon } from '@vben/icons';
 import { useAccessStore } from '@vben/stores';
 
 import {
   ElButton,
-  ElDialog,
-  ElDrawer,
-  ElEmpty,
-  ElForm,
-  ElFormItem,
-  ElImage,
-  ElInput,
   ElMessage,
   ElMessageBox,
-  ElOption,
-  ElSelect,
   ElTag,
   ElTooltip,
 } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  addIndustryApi,
-  addIndustryRelationBrandsApi,
-  deleteIndustryApi,
-  deleteIndustryRelationBrandsApi,
-  getBrandSelectorApi,
-  getIndustryListApi,
-  getIndustryRelationBrandsApi,
-  sortIndustryApi,
-  sortIndustryRelationBrandApi,
-  updateIndustryApi,
-} from '#/api';
+import { deleteIndustryApi, getIndustryListApi, sortIndustryApi } from '#/api';
 
 import {
   formatDateTime,
@@ -57,17 +28,11 @@ import {
   toGridResult,
 } from '../../shared';
 import {
-  appendIndustrySelectorOptions,
   getAvailableBrandSortActions,
   getBrandSortActionItems,
-  relationIdsFromItems,
-  resolveProductImageUrl,
 } from '../shared';
-
-interface IndustryDialogState {
-  brand_ids: number[];
-  name: string;
-}
+import IndustryDialog from './components/IndustryDialog.vue';
+import IndustryRelationDrawer from './components/IndustryRelationDrawer.vue';
 
 const IndustrySortTopIcon = createIconifyIcon('lucide:chevrons-up');
 const IndustrySortUpIcon = createIconifyIcon('lucide:arrow-up');
@@ -83,191 +48,31 @@ const INDUSTRY_SORT_ICON_MAP = {
   up: IndustrySortUpIcon,
 } as const;
 
-const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 const accessStore = useAccessStore();
 const canManage = computed(() =>
   accessStore.accessCodes.includes('product.industry'),
 );
 
-const formRef = ref<FormInstance>();
 const dialogVisible = ref(false);
-const dialogLoading = ref(false);
 const editingIndustry = ref<IndustryListItem | null>(null);
 const industryRows = ref<IndustryListItem[]>([]);
-const selectorOptions = ref<BrandSelectorItem[]>([]);
 
 const relationDrawerVisible = ref(false);
-const relationDrawerLoading = ref(false);
-const relationSubmitting = ref(false);
 const activeIndustry = ref<IndustryListItem | null>(null);
-const relationRows = ref<IndustryRelationBrandItem[]>([]);
-const relationKeyword = ref('');
-const relationSelectorOptions = ref<BrandSelectorItem[]>([]);
-const pendingRelationBrandIds = ref<number[]>([]);
-
-const dialogForm = reactive<IndustryDialogState>({
-  brand_ids: [],
-  name: '',
-});
-
-// 行业编辑依赖异步拉取关联品牌，先清空上一次状态才能避免失败时串数据。
-function resetEditDialogState() {
-  resetDialogForm();
-  selectorOptions.value = [];
-  dialogVisible.value = false;
-}
-
-function resetDialogForm() {
-  dialogForm.brand_ids = [];
-  dialogForm.name = '';
-}
-
-function mapRelationItemsToOptions(items: IndustryRelationBrandItem[]) {
-  return items.map((item) => ({
-    icon: item.brand_icon,
-    id: item.brand_id,
-    name: item.brand_name,
-  }));
-}
-
-async function loadSelectorOptions(
-  keyword = '',
-  preserved: BrandSelectorItem[] = [],
-) {
-  const result = await getBrandSelectorApi(keyword ? { name: keyword } : {});
-  selectorOptions.value = appendIndustrySelectorOptions(
-    preserved,
-    result.list ?? [],
-  );
-}
-
-async function loadRelationSelectorOptions(keyword = '') {
-  const preserved = appendIndustrySelectorOptions(
-    relationSelectorOptions.value.filter((item) =>
-      pendingRelationBrandIds.value.includes(item.id),
-    ),
-    mapRelationItemsToOptions(relationRows.value),
-  );
-  const result = await getBrandSelectorApi(keyword ? { name: keyword } : {});
-  relationSelectorOptions.value = appendIndustrySelectorOptions(
-    preserved,
-    result.list ?? [],
-  );
-}
 
 function openCreateDialog() {
   editingIndustry.value = null;
-  resetEditDialogState();
   dialogVisible.value = true;
-  void loadSelectorOptions();
 }
 
-async function openEditDialog(row: IndustryListItem) {
+function openEditDialog(row: IndustryListItem) {
   editingIndustry.value = row;
-  resetEditDialogState();
-  dialogForm.name = row.name;
-  dialogLoading.value = true;
-  try {
-    const result = await getIndustryRelationBrandsApi(row.id);
-    dialogForm.brand_ids = relationIdsFromItems(result.list ?? []);
-    await loadSelectorOptions('', mapRelationItemsToOptions(result.list ?? []));
-    dialogVisible.value = true;
-  } finally {
-    dialogLoading.value = false;
-  }
+  dialogVisible.value = true;
 }
 
-async function submitDialog() {
-  if (!formRef.value) {
-    return;
-  }
-  const valid = await formRef.value.validate().catch(() => false);
-  if (!valid) {
-    return;
-  }
-
-  const payload: IndustryPayload = {
-    brand_ids: [...dialogForm.brand_ids],
-    name: dialogForm.name.trim(),
-  };
-
-  try {
-    dialogLoading.value = true;
-    if (editingIndustry.value) {
-      await updateIndustryApi(editingIndustry.value.id, payload);
-      ElMessage.success('行业已更新');
-    } else {
-      await addIndustryApi(payload);
-      ElMessage.success('行业已新增');
-    }
-    dialogVisible.value = false;
-    await gridApi.reload();
-  } finally {
-    dialogLoading.value = false;
-  }
-}
-
-async function loadRelationRows(keyword = '') {
-  if (!activeIndustry.value) {
-    relationRows.value = [];
-    return;
-  }
-  const result = await getIndustryRelationBrandsApi(
-    activeIndustry.value.id,
-    keyword ? { name: keyword } : {},
-  );
-  relationRows.value = result.list ?? [];
-  relationSelectorOptions.value = appendIndustrySelectorOptions(
-    mapRelationItemsToOptions(relationRows.value),
-    relationSelectorOptions.value,
-  );
-}
-
-// 关联抽屉也要先把旧行业的列表和待选项清掉，避免请求失败时仍操作旧数据。
-function resetRelationDrawerState() {
-  relationKeyword.value = '';
-  pendingRelationBrandIds.value = [];
-  relationRows.value = [];
-  relationSelectorOptions.value = [];
-  relationDrawerVisible.value = false;
-}
-
-async function openRelationDrawer(row: IndustryListItem) {
+function openRelationDrawer(row: IndustryListItem) {
   activeIndustry.value = row;
-  resetRelationDrawerState();
-  relationDrawerLoading.value = true;
-  try {
-    await loadRelationRows();
-    await loadRelationSelectorOptions();
-    relationDrawerVisible.value = true;
-  } finally {
-    relationDrawerLoading.value = false;
-  }
-}
-
-async function handleAddRelations() {
-  if (!activeIndustry.value) {
-    return;
-  }
-  if (pendingRelationBrandIds.value.length === 0) {
-    ElMessage.warning('请先选择品牌');
-    return;
-  }
-
-  try {
-    relationSubmitting.value = true;
-    await addIndustryRelationBrandsApi(
-      activeIndustry.value.id,
-      pendingRelationBrandIds.value,
-    );
-    pendingRelationBrandIds.value = [];
-    await loadRelationRows(relationKeyword.value.trim());
-    await loadRelationSelectorOptions();
-    await gridApi.reload();
-    ElMessage.success('行业品牌关联已更新');
-  } finally {
-    relationSubmitting.value = false;
-  }
+  relationDrawerVisible.value = true;
 }
 
 async function handleDelete(row: IndustryListItem) {
@@ -285,40 +90,6 @@ async function handleSortIndustry(row: IndustryListItem, action: SortAction) {
   await gridApi.reload();
 }
 
-async function handleDeleteRelation(row: IndustryRelationBrandItem) {
-  if (!activeIndustry.value) {
-    return;
-  }
-  await ElMessageBox.confirm(
-    `确认移除行业下的品牌 ${row.brand_name} 吗？`,
-    '移除确认',
-    { type: 'warning' },
-  );
-  await deleteIndustryRelationBrandsApi(activeIndustry.value.id, [
-    row.brand_id,
-  ]);
-  ElMessage.success('品牌关联已移除');
-  await loadRelationRows(relationKeyword.value.trim());
-  await loadRelationSelectorOptions();
-  await gridApi.reload();
-}
-
-async function handleSortRelation(
-  row: IndustryRelationBrandItem,
-  action: SortAction,
-) {
-  if (!activeIndustry.value) {
-    return;
-  }
-  await sortIndustryRelationBrandApi(
-    activeIndustry.value.id,
-    row.brand_id,
-    action,
-  );
-  ElMessage.success('行业内品牌排序已更新');
-  await loadRelationRows(relationKeyword.value.trim());
-}
-
 function getIndustrySortState(row: IndustryListItem) {
   const index = industryRows.value.findIndex((item) => item.id === row.id);
   return getAvailableBrandSortActions(index, industryRows.value.length);
@@ -328,25 +99,27 @@ function getIndustrySortButtons(row: IndustryListItem) {
   return getBrandSortActionItems(getIndustrySortState(row));
 }
 
-function getRelationSortState(row: IndustryRelationBrandItem) {
-  const index = relationRows.value.findIndex(
-    (item) => item.brand_id === row.brand_id,
-  );
-  return getAvailableBrandSortActions(index, relationRows.value.length);
+function handleDialogVisibleChange(value: boolean) {
+  dialogVisible.value = value;
+  if (!value) {
+    editingIndustry.value = null;
+  }
 }
 
-function getRelationSortButtons(row: IndustryRelationBrandItem) {
-  return getBrandSortActionItems(getRelationSortState(row));
+function handleDrawerVisibleChange(value: boolean) {
+  relationDrawerVisible.value = value;
+  if (!value) {
+    activeIndustry.value = null;
+  }
 }
 
-const availableRelationOptions = computed(() => {
-  const relationIds = new Set(relationIdsFromItems(relationRows.value));
-  return relationSelectorOptions.value.filter(
-    (item) =>
-      !relationIds.has(item.id) ||
-      pendingRelationBrandIds.value.includes(item.id),
-  );
-});
+async function handleDialogSaved() {
+  await gridApi.reload();
+}
+
+async function handleRelationSaved() {
+  await gridApi.reload();
+}
 
 const [Grid, gridApi] = useVbenVxeGrid<IndustryListItem>({
   formOptions: {
@@ -420,14 +193,6 @@ const [Grid, gridApi] = useVbenVxeGrid<IndustryListItem>({
     },
   },
 });
-
-const dialogTitle = computed(() =>
-  editingIndustry.value ? '编辑行业' : '新增行业',
-);
-
-function resolveImageUrl(url: string) {
-  return resolveProductImageUrl(url, apiURL);
-}
 </script>
 
 <template>
@@ -524,192 +289,19 @@ function resolveImageUrl(url: string) {
       </template>
     </Grid>
 
-    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="640px">
-      <ElForm ref="formRef" :model="dialogForm" label-width="96px">
-        <ElFormItem
-          label="行业名称"
-          prop="name"
-          :rules="[
-            { required: true, message: '请输入行业名称', trigger: 'blur' },
-          ]"
-        >
-          <ElInput v-model="dialogForm.name" placeholder="请输入行业名称" />
-        </ElFormItem>
-        <ElFormItem label="初始品牌">
-          <ElSelect
-            v-model="dialogForm.brand_ids"
-            class="w-full"
-            collapse-tags
-            collapse-tags-tooltip
-            filterable
-            multiple
-            remote
-            reserve-keyword
-            placeholder="可直接选择一批初始品牌"
-            :remote-method="
-              (keyword: string) => loadSelectorOptions(keyword, selectorOptions)
-            "
-          >
-            <ElOption
-              v-for="item in selectorOptions"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id"
-            />
-          </ElSelect>
-        </ElFormItem>
-      </ElForm>
-      <template #footer>
-        <div class="flex justify-end gap-3">
-          <ElButton @click="dialogVisible = false">取消</ElButton>
-          <ElButton
-            :loading="dialogLoading"
-            type="primary"
-            @click="submitDialog"
-          >
-            保存
-          </ElButton>
-        </div>
-      </template>
-    </ElDialog>
+    <IndustryDialog
+      :editing-industry="editingIndustry"
+      :visible="dialogVisible"
+      @saved="handleDialogSaved"
+      @update:visible="handleDialogVisibleChange"
+    />
 
-    <ElDrawer
-      v-model="relationDrawerVisible"
-      :title="
-        activeIndustry
-          ? `${activeIndustry.name} - 关联品牌管理`
-          : '关联品牌管理'
-      "
-      size="640px"
-    >
-      <div class="flex flex-col gap-4" v-loading="relationDrawerLoading">
-        <div class="rounded-lg border border-border p-4">
-          <div class="mb-3 text-sm font-medium">批量新增品牌关联</div>
-          <div class="flex flex-col gap-3 md:flex-row">
-            <ElSelect
-              v-model="pendingRelationBrandIds"
-              class="w-full"
-              collapse-tags
-              collapse-tags-tooltip
-              filterable
-              multiple
-              remote
-              reserve-keyword
-              placeholder="搜索可关联的一级品牌"
-              :remote-method="loadRelationSelectorOptions"
-            >
-              <ElOption
-                v-for="item in availableRelationOptions"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
-              />
-            </ElSelect>
-            <ElButton
-              :loading="relationSubmitting"
-              type="primary"
-              @click="handleAddRelations"
-            >
-              添加关联
-            </ElButton>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <ElInput
-            v-model="relationKeyword"
-            placeholder="搜索已关联品牌名称"
-            @keyup.enter="loadRelationRows(relationKeyword.trim())"
-          />
-          <ElButton @click="loadRelationRows(relationKeyword.trim())">
-            搜索
-          </ElButton>
-        </div>
-
-        <div
-          v-if="relationRows.length === 0"
-          class="rounded-lg border border-dashed border-border py-8"
-        >
-          <ElEmpty description="当前行业暂无品牌关联" />
-        </div>
-
-        <div v-else class="space-y-3">
-          <div
-            v-for="item in relationRows"
-            :key="item.brand_id"
-            class="flex flex-col gap-3 rounded-lg border border-border p-4 md:flex-row md:items-center md:justify-between"
-          >
-            <div class="flex items-center gap-3">
-              <ElImage
-                v-if="item.brand_icon"
-                :preview-src-list="[resolveImageUrl(item.brand_icon)]"
-                :src="resolveImageUrl(item.brand_icon)"
-                fit="cover"
-                class="h-12 w-12 rounded-md"
-              />
-              <div
-                v-else
-                class="flex h-12 w-12 items-center justify-center rounded-md bg-muted text-xs text-text-secondary"
-              >
-                无图标
-              </div>
-              <div>
-                <div class="font-medium text-foreground">
-                  {{ item.brand_name }}
-                </div>
-                <div class="text-xs text-text-secondary">
-                  品牌 ID：{{ item.brand_id }}
-                </div>
-              </div>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-              <div class="industry-action-group industry-action-group--sort">
-                <ElTooltip
-                  v-for="action in getRelationSortButtons(item)"
-                  :key="action.action"
-                  :content="action.tooltip"
-                  placement="top"
-                >
-                  <span class="industry-action-button__wrapper">
-                    <ElButton
-                      circle
-                      plain
-                      class="industry-action-button industry-action-button--sort"
-                      :class="{
-                        'industry-action-button--disabled': action.disabled,
-                      }"
-                      :disabled="action.disabled"
-                      :title="action.tooltip"
-                      @click="handleSortRelation(item, action.action)"
-                    >
-                      <component
-                        :is="INDUSTRY_SORT_ICON_MAP[action.action]"
-                        class="size-4"
-                      />
-                    </ElButton>
-                  </span>
-                </ElTooltip>
-              </div>
-              <div class="industry-action-group industry-action-group--manage">
-                <ElTooltip content="移除" placement="top">
-                  <span class="industry-action-button__wrapper">
-                    <ElButton
-                      circle
-                      plain
-                      class="industry-action-button industry-action-button--delete"
-                      title="移除"
-                      @click="handleDeleteRelation(item)"
-                    >
-                      <IndustryDeleteIcon class="size-4" />
-                    </ElButton>
-                  </span>
-                </ElTooltip>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </ElDrawer>
+    <IndustryRelationDrawer
+      :active-industry="activeIndustry"
+      :visible="relationDrawerVisible"
+      @saved="handleRelationSaved"
+      @update:visible="handleDrawerVisibleChange"
+    />
   </Page>
 </template>
 

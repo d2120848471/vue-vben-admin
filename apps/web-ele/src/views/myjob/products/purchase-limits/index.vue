@@ -1,40 +1,19 @@
 <script lang="ts" setup>
-import type { FormInstance } from 'element-plus';
-
 import type { GridPageParams } from '../../shared';
 
-import type {
-  PurchaseLimitStrategyEnumItem,
-  PurchaseLimitStrategyListItem,
-  PurchaseLimitStrategyPayload,
-} from '#/api';
+import type { PurchaseLimitStrategyListItem } from '#/api';
 
 import { computed, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 import { useAccessStore } from '@vben/stores';
 
-import {
-  ElButton,
-  ElDialog,
-  ElForm,
-  ElFormItem,
-  ElInput,
-  ElInputNumber,
-  ElMessage,
-  ElMessageBox,
-  ElOption,
-  ElSelect,
-  ElSwitch,
-} from 'element-plus';
+import { ElButton, ElMessage, ElMessageBox, ElSwitch } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  addPurchaseLimitStrategyApi,
   deletePurchaseLimitStrategyApi,
-  getPurchaseLimitStrategyEnumsApi,
   getPurchaseLimitStrategyListApi,
-  updatePurchaseLimitStrategyApi,
   updatePurchaseLimitStrategyStatusApi,
 } from '#/api';
 
@@ -45,148 +24,25 @@ import {
   resolvePageParams,
   toGridResult,
 } from '../../shared';
-
-interface PurchaseLimitDialogState {
-  limit_nums: number;
-  limit_times: number;
-  limit_type: number;
-  name: string;
-  period: number;
-  period_type: number;
-}
+import PurchaseLimitDialog from './components/PurchaseLimitDialog.vue';
 
 const accessStore = useAccessStore();
 const canManage = computed(() =>
   accessStore.accessCodes.includes('product.purchase_limit'),
 );
 
-const formRef = ref<FormInstance>();
 const dialogVisible = ref(false);
-const dialogLoading = ref(false);
 const editingStrategy = ref<null | PurchaseLimitStrategyListItem>(null);
 const loadingStatusIds = reactive<Record<number, boolean>>({});
-const limitTypeOptions = ref<PurchaseLimitStrategyEnumItem[]>([]);
-const periodTypeOptions = ref<PurchaseLimitStrategyEnumItem[]>([]);
-
-const dialogForm = reactive<PurchaseLimitDialogState>({
-  limit_nums: 0,
-  limit_times: 0,
-  limit_type: 0,
-  name: '',
-  period: 1,
-  period_type: 0,
-});
-
-function resetDialogForm() {
-  dialogForm.limit_nums = 0;
-  dialogForm.limit_times = 0;
-  dialogForm.limit_type = 0;
-  dialogForm.name = '';
-  dialogForm.period = 1;
-  dialogForm.period_type = 0;
-}
-
-function syncEnumDefaults() {
-  const hasLimitType = limitTypeOptions.value.some(
-    (item) => item.id === dialogForm.limit_type,
-  );
-  if (!hasLimitType) {
-    dialogForm.limit_type = limitTypeOptions.value[0]?.id ?? 0;
-  }
-
-  const hasPeriodType = periodTypeOptions.value.some(
-    (item) => item.id === dialogForm.period_type,
-  );
-  if (!hasPeriodType) {
-    dialogForm.period_type = periodTypeOptions.value[0]?.id ?? 0;
-  }
-}
-
-async function ensureEnumsLoaded() {
-  if (limitTypeOptions.value.length > 0 && periodTypeOptions.value.length > 0) {
-    return;
-  }
-  const result = await getPurchaseLimitStrategyEnumsApi();
-  limitTypeOptions.value = result.limit_types ?? [];
-  periodTypeOptions.value = result.period_types ?? [];
-}
-
-// 枚举是表单的唯一选项源，加载失败时直接阻止打开弹窗，避免用户提交脏值。
-async function prepareDialogOptions() {
-  try {
-    await ensureEnumsLoaded();
-    syncEnumDefaults();
-    return true;
-  } catch {
-    ElMessage.error('限制策略枚举加载失败，请稍后重试');
-    return false;
-  }
-}
 
 async function openCreateDialog() {
   editingStrategy.value = null;
-  resetDialogForm();
-  const ready = await prepareDialogOptions();
-  if (!ready) {
-    return;
-  }
   dialogVisible.value = true;
 }
 
-async function openEditDialog(row: PurchaseLimitStrategyListItem) {
-  resetDialogForm();
-  dialogForm.limit_nums = row.limit_nums;
-  dialogForm.limit_times = row.limit_times;
-  dialogForm.limit_type = row.limit_type;
-  dialogForm.name = row.name;
-  dialogForm.period = row.period;
-  dialogForm.period_type = row.period_type;
-
-  const ready = await prepareDialogOptions();
-  if (!ready) {
-    resetDialogForm();
-    editingStrategy.value = null;
-    return;
-  }
+function openEditDialog(row: PurchaseLimitStrategyListItem) {
   editingStrategy.value = row;
   dialogVisible.value = true;
-}
-
-function buildPayload(): PurchaseLimitStrategyPayload {
-  return {
-    limit_nums: dialogForm.limit_nums,
-    limit_times: dialogForm.limit_times,
-    limit_type: dialogForm.limit_type,
-    name: dialogForm.name.trim(),
-    period: dialogForm.period,
-    period_type: dialogForm.period_type,
-  };
-}
-
-async function submitDialog() {
-  if (!formRef.value) {
-    return;
-  }
-  const valid = await formRef.value.validate().catch(() => false);
-  if (!valid) {
-    return;
-  }
-
-  try {
-    dialogLoading.value = true;
-    const payload = buildPayload();
-    if (editingStrategy.value) {
-      await updatePurchaseLimitStrategyApi(editingStrategy.value.id, payload);
-      ElMessage.success('限制策略已更新');
-    } else {
-      await addPurchaseLimitStrategyApi(payload);
-      ElMessage.success('限制策略已新增');
-    }
-    dialogVisible.value = false;
-    await gridApi.reload();
-  } finally {
-    dialogLoading.value = false;
-  }
 }
 
 async function handleDelete(row: PurchaseLimitStrategyListItem) {
@@ -207,11 +63,24 @@ async function handleStatusChange(
   loadingStatusIds[row.id] = true;
   try {
     await updatePurchaseLimitStrategyStatusApi(row.id, normalizedStatus);
-    ElMessage.success(normalizedStatus === 1 ? '限制策略已启用' : '限制策略已禁用');
+    ElMessage.success(
+      normalizedStatus === 1 ? '限制策略已启用' : '限制策略已禁用',
+    );
     await gridApi.reload();
   } finally {
     loadingStatusIds[row.id] = false;
   }
+}
+
+function handleDialogVisibleChange(value: boolean) {
+  dialogVisible.value = value;
+  if (!value) {
+    editingStrategy.value = null;
+  }
+}
+
+async function handleDialogSaved() {
+  await gridApi.reload();
 }
 
 const [Grid, gridApi] = useVbenVxeGrid<PurchaseLimitStrategyListItem>({
@@ -283,10 +152,6 @@ const [Grid, gridApi] = useVbenVxeGrid<PurchaseLimitStrategyListItem>({
     },
   },
 });
-
-const dialogTitle = computed(() =>
-  editingStrategy.value ? '编辑限制策略' : '新增限制策略',
-);
 </script>
 
 <template>
@@ -322,102 +187,11 @@ const dialogTitle = computed(() =>
       </template>
     </Grid>
 
-    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="640px">
-      <ElForm ref="formRef" :model="dialogForm" label-width="112px">
-        <ElFormItem
-          label="策略名称"
-          prop="name"
-          :rules="[
-            { required: true, message: '请输入策略名称', trigger: 'blur' },
-          ]"
-        >
-          <ElInput
-            v-model="dialogForm.name"
-            data-test="strategy-name"
-            placeholder="请输入策略名称"
-          />
-        </ElFormItem>
-        <ElFormItem
-          label="限制类型"
-          prop="limit_type"
-          :rules="[
-            { required: true, message: '请选择限制类型', trigger: 'change' },
-          ]"
-        >
-          <ElSelect v-model="dialogForm.limit_type" class="w-full">
-            <ElOption
-              v-for="item in limitTypeOptions"
-              :key="item.id"
-              :label="item.title"
-              :value="item.id"
-            />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem
-          label="周期类型"
-          prop="period_type"
-          :rules="[
-            { required: true, message: '请选择周期类型', trigger: 'change' },
-          ]"
-        >
-          <ElSelect v-model="dialogForm.period_type" class="w-full">
-            <ElOption
-              v-for="item in periodTypeOptions"
-              :key="item.id"
-              :label="item.title"
-              :value="item.id"
-            />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem
-          label="周期"
-          prop="period"
-          :rules="[
-            {
-              required: true,
-              message: '请输入大于 0 的周期',
-              trigger: 'change',
-            },
-          ]"
-        >
-          <ElInputNumber
-            v-model="dialogForm.period"
-            :min="1"
-            class="w-full"
-            data-test="strategy-period"
-          />
-        </ElFormItem>
-        <ElFormItem label="限制数量" prop="limit_nums">
-          <ElInputNumber
-            v-model="dialogForm.limit_nums"
-            :min="0"
-            class="w-full"
-            data-test="strategy-limit-nums"
-          />
-          <div class="mt-2 text-xs text-muted-foreground">0 表示不限制</div>
-        </ElFormItem>
-        <ElFormItem label="限制笔数" prop="limit_times">
-          <ElInputNumber
-            v-model="dialogForm.limit_times"
-            :min="0"
-            class="w-full"
-            data-test="strategy-limit-times"
-          />
-          <div class="mt-2 text-xs text-muted-foreground">0 表示不限制</div>
-        </ElFormItem>
-      </ElForm>
-      <template #footer>
-        <div class="flex justify-end gap-3">
-          <ElButton @click="dialogVisible = false">取消</ElButton>
-          <ElButton
-            :loading="dialogLoading"
-            type="primary"
-            @click="submitDialog"
-          >
-            确定
-          </ElButton>
-        </div>
-      </template>
-    </ElDialog>
+    <PurchaseLimitDialog
+      :editing-strategy="editingStrategy"
+      :visible="dialogVisible"
+      @saved="handleDialogSaved"
+      @update:visible="handleDialogVisibleChange"
+    />
   </Page>
 </template>
