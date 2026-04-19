@@ -33,7 +33,6 @@ import {
 } from '#/api/modules/admin/products/goods';
 
 import {
-  formatDateTime,
   MYJOB_GRID_CLASS,
   MYJOB_PAGE_CONTENT_CLASS,
   resolvePageParams,
@@ -44,7 +43,12 @@ import {
   buildProductGoodsBrandFilterOptions,
   resolveProductImageUrl,
 } from '../shared';
+import GoodsChannelDialog from './components/channel-config/GoodsChannelDialog.vue';
 import GoodsDialog from './components/GoodsDialog.vue';
+import {
+  buildProductGoodsColumns,
+  buildProductGoodsFilterSchema,
+} from './schemas';
 
 const DEFAULT_GOODS_TYPE_LABELS = new Map([
   ['card_secret', '卡密'],
@@ -65,6 +69,8 @@ const canManage = computed(() =>
 );
 
 const dialogVisible = ref(false);
+const channelDialogGoodsId = ref<null | number>(null);
+const channelDialogVisible = ref(false);
 const editingGoods = ref<null | ProductGoodsListItem>(null);
 const productRows = ref<ProductGoodsListItem[]>([]);
 const formOptionsLoaded = ref(false);
@@ -97,61 +103,36 @@ function syncFilterOptions() {
   if (!gridApi.formApi?.updateSchema) {
     return;
   }
-  gridApi.formApi.updateSchema([
-    {
-      componentProps: {
-        onVisibleChange: handleFilterOptionsVisible,
-        options: [
-          { label: '全部品牌', value: '' },
-          ...brandFilterOptions.value,
-        ],
-        placeholder: '请选择品牌',
-      },
-      fieldName: 'brand_id',
-    },
-    {
-      componentProps: {
-        onVisibleChange: handleFilterOptionsVisible,
-        options: [
-          { label: '全部类型', value: '' },
-          ...goodsTypeOptions.value.map((item) => ({
-            label: item.label,
-            value: item.value,
-          })),
-        ],
-        placeholder: '请选择商品类型',
-      },
-      fieldName: 'goods_type',
-    },
-    {
-      componentProps: {
-        onVisibleChange: handleFilterOptionsVisible,
-        options: [
-          { label: '全部', value: '' },
-          ...booleanOptions.value.map((item) => ({
-            label: item.label,
-            value: String(item.value),
-          })),
-        ],
-        placeholder: '请选择是否含税',
-      },
-      fieldName: 'has_tax',
-    },
-    {
-      componentProps: {
-        onVisibleChange: handleFilterOptionsVisible,
-        options: [
-          { label: '全部', value: '' },
-          ...statusOptions.value.map((item) => ({
-            label: item.label,
-            value: String(item.value),
-          })),
-        ],
-        placeholder: '请选择状态',
-      },
-      fieldName: 'status',
-    },
-  ]);
+  gridApi.formApi.updateSchema(
+    buildProductGoodsFilterSchema({
+      booleanOptions: [
+        { label: '全部', value: '' },
+        ...booleanOptions.value.map((item) => ({
+          label: item.label,
+          value: String(item.value),
+        })),
+      ],
+      brandOptions: [
+        { label: '全部品牌', value: '' },
+        ...brandFilterOptions.value,
+      ],
+      goodsTypeOptions: [
+        { label: '全部类型', value: '' },
+        ...goodsTypeOptions.value.map((item) => ({
+          label: item.label,
+          value: item.value,
+        })),
+      ],
+      onVisibleChange: handleFilterOptionsVisible,
+      statusOptions: [
+        { label: '全部', value: '' },
+        ...statusOptions.value.map((item) => ({
+          label: item.label,
+          value: String(item.value),
+        })),
+      ],
+    }),
+  );
 }
 
 function applyFormOptions(result: ProductGoodsFormOptionsResult) {
@@ -304,111 +285,47 @@ function getGoodsCardImageFallback(row: ProductGoodsListItem) {
   return brandName.slice(0, 2) || '商品';
 }
 
+function getPrimaryChannelSummary(row: ProductGoodsListItem) {
+  if ((row.bound_channel_count ?? 0) <= 0) {
+    return '未绑定';
+  }
+
+  const primaryName =
+    String(row.primary_channel_name ?? '').trim() ||
+    row.bound_channels?.[0] ||
+    '按规则选路';
+  if ((row.bound_channel_count ?? 0) === 1) {
+    return primaryName;
+  }
+
+  return `${primaryName} +${Math.max((row.bound_channel_count ?? 1) - 1, 0)}`;
+}
+
+function getChannelCostSummary(row: ProductGoodsListItem) {
+  if ((row.bound_channel_count ?? 0) <= 0) {
+    return '点击配置渠道';
+  }
+  return `最低进价 ${formatAmount(row.min_channel_cost ?? '')}`;
+}
+
+function openChannelDialog(row: ProductGoodsListItem) {
+  channelDialogGoodsId.value = row.id;
+  channelDialogVisible.value = true;
+}
+
 const [Grid, gridApi] = useVbenVxeGrid<ProductGoodsListItem>({
   formOptions: {
-    schema: [
-      {
-        component: 'Input',
-        fieldName: 'keyword',
-        label: '关键词',
-        componentProps: {
-          placeholder: '商品名称 / 商品编码',
-        },
-      },
-      {
-        component: 'Select',
-        fieldName: 'brand_id',
-        label: '品牌',
-        componentProps: {
-          onVisibleChange: handleFilterOptionsVisible,
-          options: [{ label: '全部品牌', value: '' }],
-          placeholder: '请选择品牌',
-        },
-      },
-      {
-        component: 'Select',
-        fieldName: 'goods_type',
-        label: '商品类型',
-        componentProps: {
-          onVisibleChange: handleFilterOptionsVisible,
-          options: [{ label: '全部类型', value: '' }],
-          placeholder: '请选择商品类型',
-        },
-      },
-      {
-        component: 'Select',
-        fieldName: 'has_tax',
-        label: '是否含税',
-        componentProps: {
-          onVisibleChange: handleFilterOptionsVisible,
-          options: [{ label: '全部', value: '' }],
-          placeholder: '请选择是否含税',
-        },
-      },
-      {
-        component: 'Select',
-        fieldName: 'status',
-        label: '状态',
-        componentProps: {
-          onVisibleChange: handleFilterOptionsVisible,
-          options: [{ label: '全部', value: '' }],
-          placeholder: '请选择状态',
-        },
-      },
-    ],
+    schema: buildProductGoodsFilterSchema({
+      booleanOptions: [{ label: '全部', value: '' }],
+      brandOptions: [{ label: '全部品牌', value: '' }],
+      goodsTypeOptions: [{ label: '全部类型', value: '' }],
+      onVisibleChange: handleFilterOptionsVisible,
+      statusOptions: [{ label: '全部', value: '' }],
+    }),
   },
   gridClass: `${MYJOB_GRID_CLASS} myjob-goods-grid`,
   gridOptions: {
-    columns: [
-      {
-        className: 'goods-product-info-column',
-        field: 'product_info',
-        minWidth: 560,
-        showOverflow: false,
-        slots: { default: 'productInfo' },
-        title: '商品信息',
-      },
-      {
-        field: 'purchase_limit_strategy_name',
-        formatter: ({ cellValue }: { cellValue?: string }) => cellValue || '--',
-        minWidth: 180,
-        title: '限制策略',
-      },
-      {
-        field: 'default_sell_price',
-        formatter: ({ cellValue }: { cellValue?: string }) =>
-          formatAmount(cellValue ?? ''),
-        minWidth: 120,
-        title: '默认售价',
-      },
-      {
-        field: 'terminal_price_limit',
-        formatter: ({ cellValue }: { cellValue?: string }) =>
-          formatAmount(cellValue ?? ''),
-        minWidth: 120,
-        title: '终端限价',
-      },
-      {
-        field: 'status',
-        minWidth: 100,
-        slots: { default: 'status' },
-        title: '状态',
-      },
-      {
-        field: 'created_at',
-        formatter: ({ cellValue }: { cellValue?: string }) =>
-          formatDateTime(cellValue),
-        minWidth: 180,
-        title: '创建时间',
-      },
-      {
-        field: 'actions',
-        fixed: 'right',
-        minWidth: 180,
-        slots: { default: 'actions' },
-        title: '操作',
-      },
-    ],
+    columns: buildProductGoodsColumns(formatAmount),
     pagerConfig: {},
     proxyConfig: {
       ajax: {
@@ -452,7 +369,18 @@ function handleDialogVisibleChange(value: boolean) {
   }
 }
 
+function handleChannelDialogVisibleChange(value: boolean) {
+  channelDialogVisible.value = value;
+  if (!value) {
+    channelDialogGoodsId.value = null;
+  }
+}
+
 async function handleDialogSaved() {
+  await gridApi.reload();
+}
+
+async function handleChannelDialogSaved() {
   await gridApi.reload();
 }
 </script>
@@ -545,6 +473,27 @@ async function handleDialogSaved() {
         </span>
       </template>
 
+      <template #channelConfig="{ row }">
+        <button
+          class="goods-channel-button"
+          type="button"
+          @click="openChannelDialog(row)"
+        >
+          <span class="goods-channel-button__primary">
+            {{ getPrimaryChannelSummary(row) }}
+          </span>
+          <span class="goods-channel-button__secondary">
+            {{ getChannelCostSummary(row) }}
+          </span>
+          <span
+            v-if="row.channel_auto_price_status === 1"
+            class="goods-channel-button__tag"
+          >
+            自动改价
+          </span>
+        </button>
+      </template>
+
       <template #actions="{ row }">
         <div v-if="canManage" class="flex items-center gap-3">
           <ElButton link type="primary" @click="openEditDialog(row)">
@@ -570,6 +519,13 @@ async function handleDialogSaved() {
       :visible="dialogVisible"
       @saved="handleDialogSaved"
       @update:visible="handleDialogVisibleChange"
+    />
+
+    <GoodsChannelDialog
+      :goods-id="channelDialogGoodsId"
+      :visible="channelDialogVisible"
+      @saved="handleChannelDialogSaved"
+      @update:visible="handleChannelDialogVisibleChange"
     />
   </Page>
 </template>
@@ -768,5 +724,38 @@ async function handleDialogSaved() {
 .goods-status--disabled {
   color: rgb(71 85 105);
   background: rgb(148 163 184 / 18%);
+}
+
+.goods-channel-button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.goods-channel-button__primary {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.goods-channel-button__secondary {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.goods-channel-button__tag {
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: rgb(180 83 9);
+  background: rgb(245 158 11 / 16%);
+  border-radius: 999px;
 }
 </style>

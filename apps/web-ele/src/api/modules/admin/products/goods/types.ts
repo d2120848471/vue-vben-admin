@@ -12,6 +12,9 @@ export interface ProductGoodsListItem {
   brand_id: number;
   brand_icon: string;
   brand_name: string;
+  bound_channel_count: number;
+  bound_channels: string[];
+  channel_auto_price_status: number;
   created_at: string;
   default_sell_price: string;
   exception_notify: number;
@@ -21,7 +24,10 @@ export interface ProductGoodsListItem {
   id: number;
   is_douyin: number;
   is_export: number;
+  min_channel_cost: string;
+  min_channel_effective_sell_price: string;
   name: string;
+  primary_channel_name: string;
   product_template_id: number;
   product_template_title: string;
   purchase_limit_strategy_id: number;

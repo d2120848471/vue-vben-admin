@@ -90,6 +90,9 @@ const fixtures = vi.hoisted(() => ({
       brand_id: 3,
       brand_icon: '/uploads/brands/tencent.png',
       brand_name: '腾讯视频周卡',
+      bound_channel_count: 0,
+      bound_channels: [],
+      channel_auto_price_status: 0,
       created_at: '2026-04-14 20:00:00',
       default_sell_price: '19.9000',
       exception_notify: 1,
@@ -99,7 +102,10 @@ const fixtures = vi.hoisted(() => ({
       id: 1,
       is_douyin: 0,
       is_export: 1,
+      min_channel_cost: '',
+      min_channel_effective_sell_price: '',
       name: '腾讯视频周卡商品',
+      primary_channel_name: '',
       product_template_id: 7,
       product_template_title: '腾讯模板',
       purchase_limit_strategy_id: 8,
@@ -107,6 +113,62 @@ const fixtures = vi.hoisted(() => ({
       status: 1,
       supply_type: 'channel',
       terminal_price_limit: '29.9000',
+    },
+    {
+      brand_id: 3,
+      brand_icon: '/uploads/brands/tencent.png',
+      brand_name: '腾讯视频周卡',
+      bound_channel_count: 1,
+      bound_channels: ['渠道未税账号'],
+      channel_auto_price_status: 0,
+      created_at: '2026-04-14 20:10:00',
+      default_sell_price: '18.8000',
+      exception_notify: 0,
+      goods_code: 'GD0000000002',
+      goods_type: 'card_secret',
+      has_tax: 0,
+      id: 2,
+      is_douyin: 0,
+      is_export: 0,
+      min_channel_cost: '10.0000',
+      min_channel_effective_sell_price: '18.8000',
+      name: '腾讯视频周卡商品-单渠道',
+      primary_channel_name: '渠道未税账号',
+      product_template_id: 7,
+      product_template_title: '腾讯模板',
+      purchase_limit_strategy_id: 8,
+      purchase_limit_strategy_name: '启用策略',
+      status: 1,
+      supply_type: 'channel',
+      terminal_price_limit: '28.8000',
+    },
+    {
+      brand_id: 3,
+      brand_icon: '/uploads/brands/tencent.png',
+      brand_name: '腾讯视频周卡',
+      bound_channel_count: 3,
+      bound_channels: ['渠道含税账号', '渠道未税账号', '渠道备用账号'],
+      channel_auto_price_status: 1,
+      created_at: '2026-04-14 20:20:00',
+      default_sell_price: '20.5000',
+      exception_notify: 1,
+      goods_code: 'GD0000000003',
+      goods_type: 'direct_recharge',
+      has_tax: 1,
+      id: 3,
+      is_douyin: 1,
+      is_export: 1,
+      min_channel_cost: '9.6200',
+      min_channel_effective_sell_price: '10.9200',
+      name: '腾讯视频周卡商品-多渠道',
+      primary_channel_name: '渠道含税账号',
+      product_template_id: 7,
+      product_template_title: '腾讯模板',
+      purchase_limit_strategy_id: 8,
+      purchase_limit_strategy_name: '启用策略',
+      status: 1,
+      supply_type: 'channel',
+      terminal_price_limit: '30.8000',
     },
   ],
 }));
@@ -127,6 +189,9 @@ const gridReloadMock = vi.hoisted(() => vi.fn());
 const gridConfigState = vi.hoisted(() => ({
   latest: null as any,
 }));
+const channelDialogState = vi.hoisted(() => ({
+  lastProps: null as any,
+}));
 const elementState = vi.hoisted(() => ({
   cascaderOptions: null as any,
   formItems: [] as Array<{ prop?: string; required?: boolean; rules?: any }>,
@@ -137,6 +202,48 @@ const testState = vi.hoisted(() => ({
 
 vi.mock('#/api/modules/admin/products/goods', () => apiMocks);
 vi.mock('#/api/modules/admin/subjects', () => apiMocks);
+vi.mock('./components/channel-config/GoodsChannelDialog.vue', () => ({
+  default: defineComponent({
+    name: 'GoodsChannelDialogStub',
+    props: {
+      goodsId: {
+        default: null,
+        type: Number,
+      },
+      visible: Boolean,
+    },
+    emits: ['saved', 'update:visible'],
+    setup(props, { emit }) {
+      channelDialogState.lastProps = props;
+      return () =>
+        props.visible
+          ? h('section', { 'data-test': 'goods-channel-dialog' }, [
+              h(
+                'div',
+                { 'data-test': 'goods-channel-dialog-id' },
+                String(props.goodsId),
+              ),
+              h(
+                'button',
+                {
+                  'data-test': 'goods-channel-dialog-save',
+                  onClick: () => emit('saved'),
+                },
+                'save-channel-dialog',
+              ),
+              h(
+                'button',
+                {
+                  'data-test': 'goods-channel-dialog-close',
+                  onClick: () => emit('update:visible', false),
+                },
+                'close-channel-dialog',
+              ),
+            ])
+          : null;
+    },
+  }),
+}));
 
 vi.mock('@vben/common-ui', () => ({
   Page: defineComponent({
@@ -172,6 +279,9 @@ vi.mock('#/adapter/vxe-table', () => ({
               h('div', { 'data-row-id': String(row.id) }, [
                 h('div', { 'data-cell': 'product-info' }, [
                   slots.productInfo?.({ row }),
+                ]),
+                h('div', { 'data-cell': 'channel-config' }, [
+                  slots.channelConfig?.({ row }),
                 ]),
                 h('div', { 'data-cell': 'status' }, [slots.status?.({ row })]),
                 h('div', { 'data-cell': 'actions' }, [
@@ -571,6 +681,14 @@ function findRowButton(root: HTMLElement, rowId: number, label: string) {
   return button as HTMLButtonElement;
 }
 
+function findRowCell(root: HTMLElement, rowId: number, cell: string) {
+  const row = root.querySelector(`[data-row-id="${rowId}"]`);
+  expect(row).toBeTruthy();
+  const target = row?.querySelector(`[data-cell="${cell}"]`);
+  expect(target, `未找到 ${cell} 单元格`).toBeTruthy();
+  return target as HTMLElement;
+}
+
 function findInput(root: HTMLElement, selector: string) {
   const input = root.querySelector(selector);
   expect(input).toBeTruthy();
@@ -586,6 +704,7 @@ describe('product goods page', () => {
     elementState.formItems = [];
     formUpdateSchemaMock.mockReset();
     gridConfigState.latest = null;
+    channelDialogState.lastProps = null;
     gridReloadMock.mockReset();
     testState.accessCodes.splice(
       0,
@@ -740,6 +859,62 @@ describe('product goods page', () => {
     expect(
       columns.some((column) => column.field === 'product_template_title'),
     ).toBe(false);
+  });
+
+  it('renders the channel config summary for unbound, single-channel, and auto-priced rows', async () => {
+    const view = await renderPage();
+    mountedRoots.push(view);
+
+    await flushPromises();
+    await nextTick();
+
+    expect(findRowCell(view.root, 1, 'channel-config').textContent).toContain(
+      '未绑定',
+    );
+
+    const singleChannelCell = findRowCell(view.root, 2, 'channel-config');
+    expect(singleChannelCell.textContent).toContain('渠道未税账号');
+    expect(singleChannelCell.textContent).toContain('最低进价');
+    expect(singleChannelCell.textContent).toContain('10.0000');
+
+    const multiChannelCell = findRowCell(view.root, 3, 'channel-config');
+    expect(multiChannelCell.textContent).toContain('渠道含税账号');
+    expect(multiChannelCell.textContent).toContain('+2');
+    expect(multiChannelCell.textContent).toContain('自动改价');
+    expect(multiChannelCell.textContent).toContain('9.6200');
+  });
+
+  it('opens the goods channel dialog from the channel config column and reloads after save', async () => {
+    const view = await renderPage();
+    mountedRoots.push(view);
+
+    await flushPromises();
+    await nextTick();
+
+    const trigger = findRowCell(view.root, 3, 'channel-config').querySelector(
+      'button',
+    );
+    expect(trigger).toBeTruthy();
+    (trigger as HTMLButtonElement).click();
+    await flushPromises();
+    await nextTick();
+
+    expect(
+      view.root.querySelector('[data-test="goods-channel-dialog"]'),
+    ).toBeTruthy();
+    expect(
+      view.root.querySelector('[data-test="goods-channel-dialog-id"]')
+        ?.textContent,
+    ).toBe('3');
+
+    (
+      view.root.querySelector(
+        '[data-test="goods-channel-dialog-save"]',
+      ) as HTMLButtonElement
+    ).click();
+    await flushPromises();
+
+    expect(gridReloadMock).toHaveBeenCalledTimes(1);
   });
 
   it('creates a product with the leaf brand path and channel defaults', async () => {
@@ -1103,8 +1278,8 @@ describe('product goods page', () => {
     await nextTick();
 
     expect(view.root.textContent).not.toContain('已断货商品');
-    expect(view.root.textContent).not.toContain('自动改价');
-    expect(view.root.textContent).not.toContain('主体');
+    expect(view.root.textContent).not.toContain('修改配置');
+    expect(view.root.textContent).not.toContain('批量开启对接状态');
   });
 
   it('marks the goods name field as required for the form label indicator', async () => {

@@ -37,6 +37,14 @@ import {
   updateProductGoodsStatusApi,
 } from '#/api/modules/admin/products/goods';
 import {
+  createProductGoodsChannelBindingApi,
+  deleteProductGoodsChannelBindingApi,
+  getProductGoodsChannelBindingFormOptionsApi,
+  getProductGoodsChannelBindingsApi,
+  updateProductGoodsChannelAutoPriceApi,
+  updateProductGoodsChannelBindingApi,
+} from '#/api/modules/admin/products/goods-channels';
+import {
   addIndustryApi,
   addIndustryRelationBrandsApi,
   deleteIndustryApi,
@@ -773,6 +781,120 @@ describe('myjob api contract', () => {
     expect(requestClientMock.delete).toHaveBeenNthCalledWith(
       1,
       '/admin/products/21',
+    );
+  });
+
+  it('uses the product goods channel binding endpoints', async () => {
+    expect(typeof getProductGoodsChannelBindingsApi).toBe('function');
+    expect(typeof getProductGoodsChannelBindingFormOptionsApi).toBe('function');
+    expect(typeof createProductGoodsChannelBindingApi).toBe('function');
+    expect(typeof updateProductGoodsChannelBindingApi).toBe('function');
+    expect(typeof deleteProductGoodsChannelBindingApi).toBe('function');
+    expect(typeof updateProductGoodsChannelAutoPriceApi).toBe('function');
+
+    requestClientMock.get.mockResolvedValueOnce({
+      goods: {
+        brand_name: '腾讯视频',
+        default_sell_price: '19.9000',
+        goods_code: 'GD0000000021',
+        has_tax: 1,
+        id: 21,
+        name: '腾讯视频周卡',
+        subject_id: 11,
+        subject_name: '开票主体A',
+      },
+      list: [],
+    });
+    requestClientMock.get.mockResolvedValueOnce({
+      auto_price_type_options: [{ label: '固定值', value: 'fixed' }],
+      dock_status_options: [{ label: '正常', value: 1 }],
+      platform_accounts: [{ id: 101, name: '渠道A' }],
+      validate_templates: [{ id: 7, title: '腾讯模板' }],
+    });
+    requestClientMock.post.mockResolvedValueOnce({ id: 31 });
+    requestClientMock.request.mockResolvedValueOnce(undefined);
+    requestClientMock.delete.mockResolvedValueOnce(undefined);
+    requestClientMock.request.mockResolvedValueOnce(undefined);
+
+    await getProductGoodsChannelBindingsApi(21);
+    await getProductGoodsChannelBindingFormOptionsApi(21);
+    await createProductGoodsChannelBindingApi(21, {
+      dock_status: 1,
+      platform_account_id: 101,
+      sort: 10,
+      source_cost_price: '10.0000',
+      supplier_goods_name: '腾讯周卡上游',
+      supplier_goods_no: 'SKU-001',
+      validate_template_id: 7,
+    });
+    await updateProductGoodsChannelBindingApi(21, 31, {
+      dock_status: 0,
+      platform_account_id: 101,
+      sort: 20,
+      source_cost_price: '11.0000',
+      supplier_goods_name: '腾讯周卡上游-编辑',
+      supplier_goods_no: 'SKU-001',
+      validate_template_id: null,
+    });
+    await deleteProductGoodsChannelBindingApi(21, 31);
+    await updateProductGoodsChannelAutoPriceApi(21, 31, {
+      add_type: 'fixed',
+      default_price: '1.3000',
+      is_auto_change: 1,
+    });
+
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      1,
+      '/admin/products/21/channel-bindings',
+    );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      2,
+      '/admin/products/21/channel-bindings/form-options',
+    );
+    expect(requestClientMock.post).toHaveBeenNthCalledWith(
+      1,
+      '/admin/products/21/channel-bindings',
+      {
+        dock_status: 1,
+        platform_account_id: 101,
+        sort: 10,
+        source_cost_price: '10.0000',
+        supplier_goods_name: '腾讯周卡上游',
+        supplier_goods_no: 'SKU-001',
+        validate_template_id: 7,
+      },
+    );
+    expect(requestClientMock.request).toHaveBeenNthCalledWith(
+      1,
+      '/admin/products/21/channel-bindings/31',
+      {
+        data: {
+          dock_status: 0,
+          platform_account_id: 101,
+          sort: 20,
+          source_cost_price: '11.0000',
+          supplier_goods_name: '腾讯周卡上游-编辑',
+          supplier_goods_no: 'SKU-001',
+          validate_template_id: null,
+        },
+        method: 'PATCH',
+      },
+    );
+    expect(requestClientMock.delete).toHaveBeenNthCalledWith(
+      1,
+      '/admin/products/21/channel-bindings/31',
+    );
+    expect(requestClientMock.request).toHaveBeenNthCalledWith(
+      2,
+      '/admin/products/21/channel-bindings/31/auto-price',
+      {
+        data: {
+          add_type: 'fixed',
+          default_price: '1.3000',
+          is_auto_change: 1,
+        },
+        method: 'PATCH',
+      },
     );
   });
 
