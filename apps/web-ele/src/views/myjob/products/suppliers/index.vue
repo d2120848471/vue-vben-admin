@@ -13,37 +13,34 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { Page } from '@vben/common-ui';
 import { useAccessStore } from '@vben/stores';
 
-import { ElButton, ElMessage, ElMessageBox } from 'element-plus';
+import { ElButton, ElMessage, ElMessageBox, ElSwitch } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   deleteSupplierPlatformApi,
+  getSupplierPlatformDetailApi,
   getSupplierPlatformListApi,
   getSupplierPlatformTypesApi,
   refreshSupplierPlatformBalanceApi,
+  updateSupplierPlatformApi,
 } from '#/api/modules/admin/products/suppliers';
 import { getSubjectsApi } from '#/api/modules/admin/subjects';
 
 import {
-  formatDateTime,
   MYJOB_GRID_CLASS,
   MYJOB_PAGE_CONTENT_CLASS,
-  resolvePageParams,
   toGridResult,
 } from '../../shared';
 import SupplierPlatformDialog from './components/SupplierPlatformDialog.vue';
-
-const TAX_OPTIONS = [
-  { label: '全部', value: '' },
-  { label: '含税', value: '1' },
-  { label: '未税', value: '0' },
-];
-const CONNECT_STATUS_OPTIONS = [
-  { label: '全部', value: '' },
-  { label: '未验证', value: '0' },
-  { label: '正常', value: '1' },
-  { label: '异常', value: '2' },
-];
+import {
+  buildSupplierPlatformListQuery,
+  buildSupplierPlatformStatusPayload,
+} from './mappers';
+import {
+  buildSupplierPlatformColumns,
+  buildSupplierPlatformFilterOptions,
+  buildSupplierPlatformFilterSchema,
+} from './schemas';
 
 const accessStore = useAccessStore();
 const canManage = computed(() =>
@@ -53,44 +50,29 @@ const canManage = computed(() =>
 const dialogVisible = ref(false);
 const editingPlatform = ref<null | SupplierPlatformListItem>(null);
 const loadingBalanceIds = reactive<Record<number, boolean>>({});
+const loadingStatusIds = reactive<Record<number, boolean>>({});
 const platformTypeOptions = ref<SupplierPlatformTypeItem[]>([]);
 const subjectOptions = ref<SubjectItem[]>([]);
-
-function buildFilterTypeOptions() {
-  return [
-    { label: '全部', value: '' },
-    ...platformTypeOptions.value.map((item) => ({
-      label: item.type_name,
-      value: String(item.id),
-    })),
-  ];
-}
-
-function buildFilterSubjectOptions() {
-  return [
-    { label: '全部', value: '' },
-    ...subjectOptions.value.map((item) => ({
-      label: item.name,
-      value: String(item.id),
-    })),
-  ];
-}
 
 function syncFilterOptions() {
   if (!gridApi.formApi?.updateSchema) {
     return;
   }
+  const filterOptions = buildSupplierPlatformFilterOptions({
+    platformTypeOptions: platformTypeOptions.value,
+    subjectOptions: subjectOptions.value,
+  });
   gridApi.formApi.updateSchema([
     {
       componentProps: {
-        options: buildFilterTypeOptions(),
+        options: filterOptions.typeOptions,
         placeholder: '请选择平台类型',
       },
       fieldName: 'type_id',
     },
     {
       componentProps: {
-        options: buildFilterSubjectOptions(),
+        options: filterOptions.subjectOptions,
         placeholder: '请选择主体',
       },
       fieldName: 'subject_id',
@@ -221,6 +203,29 @@ function balanceStyle(row: SupplierPlatformListItem) {
   return {};
 }
 
+// 列表返回不带密钥和会员 ID，状态切换前先补详情，避免误把敏感字段清空。
+async function handleStatusChange(
+  row: SupplierPlatformListItem,
+  nextStatus: number | string,
+) {
+  const normalizedStatus = Number(nextStatus);
+  loadingStatusIds[row.id] = true;
+  try {
+    const detail = await getSupplierPlatformDetailApi(row.id);
+    const payload = buildSupplierPlatformStatusPayload(
+      detail,
+      normalizedStatus,
+    );
+    await updateSupplierPlatformApi(row.id, payload);
+    ElMessage.success(normalizedStatus === 1 ? '平台已启用' : '平台已停用');
+    await gridApi.reload();
+  } catch {
+    ElMessage.error('平台状态更新失败，请稍后重试');
+  } finally {
+    loadingStatusIds[row.id] = false;
+  }
+}
+
 function handleDialogVisibleChange(value: boolean) {
   dialogVisible.value = value;
   if (!value) {
@@ -234,98 +239,14 @@ async function handleDialogSaved() {
 
 const [Grid, gridApi] = useVbenVxeGrid<SupplierPlatformListItem>({
   formOptions: {
-    schema: [
-      {
-        component: 'Input',
-        fieldName: 'keyword',
-        label: '平台名称',
-        componentProps: {
-          placeholder: '请输入平台名称',
-        },
-      },
-      {
-        component: 'Select',
-        fieldName: 'type_id',
-        label: '平台类型',
-        componentProps: {
-          options: buildFilterTypeOptions(),
-          placeholder: '请选择平台类型',
-        },
-      },
-      {
-        component: 'Select',
-        fieldName: 'subject_id',
-        label: '主体',
-        componentProps: {
-          options: buildFilterSubjectOptions(),
-          placeholder: '请选择主体',
-        },
-      },
-      {
-        component: 'Select',
-        fieldName: 'has_tax',
-        label: '含税状态',
-        componentProps: {
-          options: TAX_OPTIONS,
-          placeholder: '请选择含税状态',
-        },
-      },
-      {
-        component: 'Select',
-        fieldName: 'connect_status',
-        label: '对接状态',
-        componentProps: {
-          options: CONNECT_STATUS_OPTIONS,
-          placeholder: '请选择对接状态',
-        },
-      },
-    ],
+    schema: buildSupplierPlatformFilterSchema({
+      platformTypeOptions: platformTypeOptions.value,
+      subjectOptions: subjectOptions.value,
+    }),
   },
   gridClass: MYJOB_GRID_CLASS,
   gridOptions: {
-    columns: [
-      { field: 'name', title: '平台名称', minWidth: 200 },
-      { field: 'domain', title: '主域名', minWidth: 180 },
-      { field: 'backup_domain', title: '备用域名', minWidth: 180 },
-      { field: 'type_name', title: '平台类型', minWidth: 140 },
-      { field: 'subject_name', title: '主体名称', minWidth: 140 },
-      {
-        field: 'has_tax',
-        minWidth: 110,
-        slots: { default: 'hasTax' },
-        title: '含税状态',
-      },
-      {
-        field: 'last_balance',
-        minWidth: 150,
-        slots: { default: 'balance' },
-        title: '平台余额',
-      },
-      { field: 'threshold_amount', title: '余额阈值', minWidth: 140 },
-      {
-        field: 'connect_status_text',
-        minWidth: 120,
-        slots: { default: 'connectStatus' },
-        title: '对接状态',
-      },
-      { field: 'last_balance_message', title: '最近结果说明', minWidth: 180 },
-      {
-        field: 'last_balance_at',
-        formatter: ({ cellValue }: { cellValue?: string }) =>
-          formatDateTime(cellValue),
-        title: '最近刷新时间',
-        minWidth: 180,
-      },
-      { field: 'sort', title: '排序', minWidth: 100 },
-      { field: 'crowd_name', title: '群名/备注', minWidth: 160 },
-      {
-        field: 'actions',
-        fixed: 'right',
-        minWidth: 220,
-        slots: { default: 'actions' },
-        title: '操作',
-      },
-    ],
+    columns: buildSupplierPlatformColumns(),
     pagerConfig: {},
     proxyConfig: {
       ajax: {
@@ -333,27 +254,9 @@ const [Grid, gridApi] = useVbenVxeGrid<SupplierPlatformListItem>({
           params: GridPageParams,
           formValues: Record<string, any>,
         ) => {
-          const { page, page_size } = resolvePageParams(params);
-          const keyword = String(formValues.keyword ?? '').trim();
-          const typeID = Number.parseInt(
-            String(formValues.type_id ?? '').trim(),
-            10,
+          const result = await getSupplierPlatformListApi(
+            buildSupplierPlatformListQuery(params, formValues),
           );
-          const subjectID = Number.parseInt(
-            String(formValues.subject_id ?? '').trim(),
-            10,
-          );
-          const hasTax = String(formValues.has_tax ?? '').trim();
-          const connectStatus = String(formValues.connect_status ?? '').trim();
-          const result = await getSupplierPlatformListApi({
-            ...(connectStatus ? { connect_status: connectStatus } : {}),
-            ...(hasTax ? { has_tax: hasTax } : {}),
-            ...(keyword ? { keyword } : {}),
-            page,
-            page_size,
-            ...(Number.isFinite(subjectID) ? { subject_id: subjectID } : {}),
-            ...(Number.isFinite(typeID) ? { type_id: typeID } : {}),
-          });
           return toGridResult(result.list ?? [], result.pagination.total);
         },
       },
@@ -380,6 +283,20 @@ const [Grid, gridApi] = useVbenVxeGrid<SupplierPlatformListItem>({
 
       <template #hasTax="{ row }">
         <span>{{ hasTaxText(row.has_tax) }}</span>
+      </template>
+
+      <template #status="{ row }">
+        <ElSwitch
+          v-if="canManage"
+          :active-value="1"
+          :inactive-value="0"
+          :loading="loadingStatusIds[row.id]"
+          :model-value="row.status"
+          active-text="启用"
+          inactive-text="停用"
+          inline-prompt
+          @change="(value) => handleStatusChange(row, Number(value))"
+        />
       </template>
 
       <template #balance="{ row }">

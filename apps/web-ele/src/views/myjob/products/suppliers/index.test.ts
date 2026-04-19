@@ -24,6 +24,7 @@ const fixtures = vi.hoisted(() => ({
       provider_code: 'xingquanyi',
       provider_name: '星权益',
       sort: 5,
+      status: 1,
       subject_id: 7,
       subject_name: '聚权益',
       threshold_amount: '5000.0000',
@@ -46,6 +47,7 @@ const fixtures = vi.hoisted(() => ({
       provider_code: 'youkayun',
       provider_name: '同系统',
       sort: 2,
+      status: 0,
       subject_id: 8,
       subject_name: '优权益',
       threshold_amount: '3000.0000',
@@ -129,6 +131,7 @@ vi.mock('#/adapter/vxe-table', () => ({
                   { 'data-cell': 'connect_status' },
                   row.connect_status_text,
                 ),
+                h('div', { 'data-cell': 'status' }, [slots.status?.({ row })]),
                 h(
                   'div',
                   { 'data-cell': 'last_message' },
@@ -303,6 +306,53 @@ vi.mock('element-plus', () => {
     },
   });
 
+  const ElSwitch = defineComponent({
+    name: 'ElSwitchStub',
+    props: {
+      activeText: {
+        default: '',
+        type: String,
+      },
+      activeValue: {
+        default: 1,
+        type: [Number, String],
+      },
+      inactiveText: {
+        default: '',
+        type: String,
+      },
+      inactiveValue: {
+        default: 0,
+        type: [Number, String],
+      },
+      modelValue: {
+        default: 0,
+        type: [Number, String],
+      },
+    },
+    emits: ['change', 'update:modelValue'],
+    setup(props, { attrs, emit }) {
+      return () =>
+        h(
+          'button',
+          {
+            ...attrs,
+            onClick: () => {
+              const nextValue =
+                props.modelValue === props.activeValue
+                  ? props.inactiveValue
+                  : props.activeValue;
+              emit('update:modelValue', nextValue);
+              emit('change', nextValue);
+            },
+          },
+          props.modelValue === props.activeValue
+            ? props.activeText
+            : props.inactiveText,
+        );
+    },
+  });
+
   return {
     ElButton,
     ElDialog,
@@ -320,6 +370,7 @@ vi.mock('element-plus', () => {
     },
     ElOption,
     ElSelect,
+    ElSwitch,
   };
 });
 
@@ -401,6 +452,7 @@ describe('supplier platforms page', () => {
       last_balance_message: '',
       name: '木木（星权益含税）',
       sort: 5,
+      status: 1,
       subject_id: 7,
       subject_name: '聚权益',
       threshold_amount: '5000.0000',
@@ -420,6 +472,7 @@ describe('supplier platforms page', () => {
       last_balance_message: '查询成功',
       name: '优卡云（未税）',
       sort: 2,
+      status: 0,
       subject_id: 8,
       subject_name: '优权益',
       threshold_amount: '3000.0000',
@@ -448,6 +501,7 @@ describe('supplier platforms page', () => {
       provider_name: '星权益',
       secret_key: 'secret-key',
       sort: 5,
+      status: 1,
       subject_id: 7,
       threshold_amount: '5000.0000',
       token_id: '1008612345',
@@ -668,6 +722,7 @@ describe('supplier platforms page', () => {
         connect_status: ' 2 ',
         has_tax: ' 1 ',
         keyword: ' 木木 ',
+        status: ' 0 ',
         subject_id: '7',
         type_id: '35',
       },
@@ -679,9 +734,39 @@ describe('supplier platforms page', () => {
       keyword: '木木',
       page: 3,
       page_size: 50,
+      status: '0',
       subject_id: 7,
       type_id: 35,
     });
+  });
+
+  it('toggles supplier platform status from the list', async () => {
+    const { ElMessage } = await import('element-plus');
+    const view = await renderPage();
+    mountedRoots.push(view);
+
+    await flushPromises();
+    await nextTick();
+    findRowButton(view.root, 1, '启用').click();
+    await flushPromises();
+
+    expect(apiMocks.getSupplierPlatformDetailApi).toHaveBeenCalledWith(1);
+    expect(apiMocks.updateSupplierPlatformApi).toHaveBeenCalledWith(1, {
+      backup_domain: 'backup.xqy.test',
+      crowd_name: '运营群',
+      domain: 'api.xqy.test',
+      has_tax: 1,
+      name: '木木（星权益含税）',
+      secret_key: 'secret-key',
+      sort: 5,
+      status: 0,
+      subject_id: 7,
+      threshold_amount: '5000.0000',
+      token_id: '1008612345',
+      type_id: 35,
+    });
+    expect(ElMessage.success).toHaveBeenCalledWith('平台已停用');
+    expect(gridReloadMock).toHaveBeenCalledTimes(1);
   });
 
   it('hides management actions without supplier.index permission', async () => {
@@ -696,5 +781,7 @@ describe('supplier platforms page', () => {
     expect(view.root.textContent).not.toContain('编辑');
     expect(view.root.textContent).not.toContain('删除');
     expect(view.root.textContent).not.toContain('余额查询');
+    expect(view.root.textContent).not.toContain('启用');
+    expect(view.root.textContent).not.toContain('停用');
   });
 });

@@ -22,6 +22,7 @@ export interface SupplierPlatformListItem {
   provider_code: string;
   provider_name: string;
   sort: number;
+  status: number;
   subject_id: number;
   subject_name: string;
   threshold_amount: string;
@@ -33,6 +34,7 @@ export interface SupplierPlatformListQuery extends ListQuery {
   connect_status?: string;
   has_tax?: string;
   keyword?: string;
+  status?: string;
   subject_id?: number;
   type_id?: number;
 }
@@ -49,6 +51,7 @@ export interface SupplierPlatformDetailResult {
   provider_name: string;
   secret_key: string;
   sort: number;
+  status: number;
   subject_id: number;
   threshold_amount: string;
   token_id: string;
@@ -63,6 +66,7 @@ export interface SupplierPlatformPayload {
   name: string;
   secret_key: string;
   sort: number;
+  status?: number;
   subject_id: number;
   threshold_amount: string;
   token_id: string;
