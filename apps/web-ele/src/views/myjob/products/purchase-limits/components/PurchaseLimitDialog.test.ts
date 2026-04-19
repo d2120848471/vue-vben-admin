@@ -12,6 +12,10 @@ const apiMocks = vi.hoisted(() => ({
   updatePurchaseLimitStrategyApi: vi.fn(),
 }));
 
+const formItemRulesState = vi.hoisted(() => ({
+  latest: {} as Record<string, any[] | undefined>,
+}));
+
 vi.mock('#/api/modules/admin/products/purchase-limits', () => apiMocks);
 
 vi.mock('element-plus', () => {
@@ -57,8 +61,18 @@ vi.mock('element-plus', () => {
 
   const ElFormItem = defineComponent({
     name: 'ElFormItemStub',
-    setup(_, { slots }) {
-      return () => h('div', slots.default?.());
+    props: {
+      label: { default: '', type: String },
+      prop: { default: '', type: String },
+      rules: { default: undefined, type: Array as () => any[] | undefined },
+    },
+    setup(props, { slots }) {
+      return () => {
+        if (props.prop) {
+          formItemRulesState.latest[props.prop] = props.rules;
+        }
+        return h('div', slots.default?.());
+      };
     },
   });
 
@@ -205,6 +219,7 @@ describe('PurchaseLimitDialog', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    formItemRulesState.latest = {};
   });
 
   afterEach(() => {
@@ -241,5 +256,27 @@ describe('PurchaseLimitDialog', () => {
     await nextTick();
 
     expect(findButton(view.root, '确定').disabled).toBe(false);
+  });
+
+  it('does not treat enum initialization changes as validation errors while loading', async () => {
+    const enumsDeferred = createDeferred<any>();
+    apiMocks.getPurchaseLimitStrategyEnumsApi.mockReturnValue(
+      enumsDeferred.promise,
+    );
+
+    const view = await renderDialog(true);
+    mountedRoots.push(view);
+
+    await flushPromises();
+    await nextTick();
+
+    const limitTypeValidator =
+      formItemRulesState.latest.limit_type?.[0]?.validator;
+    expect(limitTypeValidator).toBeTypeOf('function');
+
+    const callback = vi.fn();
+    limitTypeValidator?.({}, 1, callback);
+
+    expect(callback).toHaveBeenCalledWith();
   });
 });

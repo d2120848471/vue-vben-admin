@@ -107,7 +107,8 @@ function validateEnumSelection(
   callback: (error?: Error) => void,
 ) {
   if (dialogLoading.value) {
-    callback(new Error('限制策略枚举加载中，请稍后重试'));
+    // 初始化阶段回填默认值会触发 change 校验，此时不能把“加载中”记成表单错误。
+    callback();
     return;
   }
   if (!options.some((item) => item.id === value)) {
