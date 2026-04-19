@@ -324,6 +324,8 @@ describe('GoodsChannelAutoPriceDialog', () => {
     });
     mountedRoots.push(view);
 
+    expect(view.root.textContent).toContain('利润设置');
+
     findInput(
       view.root,
       'input[data-test="channel-auto-price-enabled"]',

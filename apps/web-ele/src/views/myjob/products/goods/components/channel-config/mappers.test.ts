@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildProductGoodsChannelAutoPricePayload,
   buildProductGoodsChannelBindingPayload,
+  buildProductGoodsChannelBindingUpdatePayload,
 } from './mappers';
 import { isValidNonNegativeMoney } from './validators';
 
@@ -48,6 +49,31 @@ describe('product goods channel mappers', () => {
       supplier_goods_name: '测试商品',
       supplier_goods_no: 'SKU-002',
       validate_template_id: null,
+    });
+  });
+
+  it('builds a binding update payload from an existing binding row', () => {
+    expect(
+      buildProductGoodsChannelBindingUpdatePayload(
+        {
+          dock_status: 0,
+          platform_account_id: 101,
+          sort: 20,
+          source_cost_price: '10.2500',
+          supplier_goods_name: '腾讯周卡',
+          supplier_goods_no: 'SKU-001',
+          validate_template_id: 7,
+        },
+        { dock_status: 1 },
+      ),
+    ).toEqual({
+      dock_status: 1,
+      platform_account_id: 101,
+      sort: 20,
+      source_cost_price: '10.2500',
+      supplier_goods_name: '腾讯周卡',
+      supplier_goods_no: 'SKU-001',
+      validate_template_id: 7,
     });
   });
 

@@ -124,7 +124,7 @@ async function submitDialog() {
 </script>
 
 <template>
-  <ElDialog v-model="dialogVisible" title="编辑自动改价" width="520px">
+  <ElDialog v-model="dialogVisible" title="利润设置" width="520px">
     <ElForm ref="formRef" :model="dialogForm">
       <ElFormItem label="自动改价">
         <ElSwitch
