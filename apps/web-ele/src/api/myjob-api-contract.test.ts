@@ -45,6 +45,10 @@ import {
   updateProductGoodsChannelBindingApi,
 } from '#/api/modules/admin/products/goods-channels';
 import {
+  getProductGoodsInventoryConfigApi,
+  saveProductGoodsInventoryConfigApi,
+} from '#/api/modules/admin/products/goods-inventory-config';
+import {
   addIndustryApi,
   addIndustryRelationBrandsApi,
   deleteIndustryApi,
@@ -799,6 +803,17 @@ describe('myjob api contract', () => {
         goods_code: 'GD0000000021',
         has_tax: 1,
         id: 21,
+        inventory_config_summary: {
+          allow_loss_sale_enabled: 0,
+          combo_goods_enabled: 0,
+          max_loss_amount: '0.0000',
+          order_strategy: 'fixed_order',
+          reorder_timeout_enabled: 0,
+          reorder_timeout_minutes: 0,
+          smart_reorder_enabled: 0,
+          sync_cost_price_enabled: 0,
+          sync_goods_name_enabled: 0,
+        },
         name: '腾讯视频周卡',
         subject_id: 11,
         subject_name: '开票主体A',
@@ -820,6 +835,9 @@ describe('myjob api contract', () => {
     await getProductGoodsChannelBindingFormOptionsApi(21);
     await createProductGoodsChannelBindingApi(21, {
       dock_status: 1,
+      order_time_end: '18:00',
+      order_time_start: '09:00',
+      order_weight: '60.0000',
       platform_account_id: 101,
       sort: 10,
       source_cost_price: '10.0000',
@@ -829,6 +847,9 @@ describe('myjob api contract', () => {
     });
     await updateProductGoodsChannelBindingApi(21, 31, {
       dock_status: 0,
+      order_time_end: '20:00',
+      order_time_start: '10:00',
+      order_weight: '40.0000',
       platform_account_id: 101,
       sort: 20,
       source_cost_price: '11.0000',
@@ -856,6 +877,9 @@ describe('myjob api contract', () => {
       '/admin/products/21/channel-bindings',
       {
         dock_status: 1,
+        order_time_end: '18:00',
+        order_time_start: '09:00',
+        order_weight: '60.0000',
         platform_account_id: 101,
         sort: 10,
         source_cost_price: '10.0000',
@@ -870,6 +894,9 @@ describe('myjob api contract', () => {
       {
         data: {
           dock_status: 0,
+          order_time_end: '20:00',
+          order_time_start: '10:00',
+          order_weight: '40.0000',
           platform_account_id: 101,
           sort: 20,
           source_cost_price: '11.0000',
@@ -894,6 +921,82 @@ describe('myjob api contract', () => {
           is_auto_change: 1,
         },
         method: 'PATCH',
+      },
+    );
+  });
+
+  it('uses the product goods inventory config endpoints', async () => {
+    expect(typeof getProductGoodsInventoryConfigApi).toBe('function');
+    expect(typeof saveProductGoodsInventoryConfigApi).toBe('function');
+
+    requestClientMock.get.mockResolvedValueOnce({
+      config: {
+        allow_loss_sale_enabled: 1,
+        combo_goods_enabled: 0,
+        max_loss_amount: '2.5000',
+        order_strategy: 'weighted_percent',
+        reorder_timeout_enabled: 1,
+        reorder_timeout_minutes: 30,
+        smart_reorder_enabled: 1,
+        sync_cost_price_enabled: 1,
+        sync_goods_name_enabled: 1,
+      },
+      goods: {
+        brand_name: '腾讯视频',
+        default_sell_price: '19.9000',
+        goods_code: 'GD0000000021',
+        has_tax: 1,
+        id: 21,
+        inventory_config_summary: {
+          allow_loss_sale_enabled: 1,
+          combo_goods_enabled: 0,
+          max_loss_amount: '2.5000',
+          order_strategy: 'weighted_percent',
+          reorder_timeout_enabled: 1,
+          reorder_timeout_minutes: 30,
+          smart_reorder_enabled: 1,
+          sync_cost_price_enabled: 1,
+          sync_goods_name_enabled: 1,
+        },
+        name: '腾讯视频周卡',
+        subject_id: 11,
+        subject_name: '开票主体A',
+      },
+      order_strategy_options: [
+        { label: '百分比分配', value: 'weighted_percent' },
+      ],
+    });
+    requestClientMock.put.mockResolvedValueOnce(undefined);
+
+    await getProductGoodsInventoryConfigApi(21);
+    await saveProductGoodsInventoryConfigApi(21, {
+      allow_loss_sale_enabled: 1,
+      combo_goods_enabled: 0,
+      max_loss_amount: '2.5000',
+      order_strategy: 'weighted_percent',
+      reorder_timeout_enabled: 1,
+      reorder_timeout_minutes: 30,
+      smart_reorder_enabled: 1,
+      sync_cost_price_enabled: 1,
+      sync_goods_name_enabled: 1,
+    });
+
+    expect(requestClientMock.get).toHaveBeenCalledWith(
+      '/admin/products/21/inventory-config',
+    );
+    expect(requestClientMock.put).toHaveBeenNthCalledWith(
+      1,
+      '/admin/products/21/inventory-config',
+      {
+        allow_loss_sale_enabled: 1,
+        combo_goods_enabled: 0,
+        max_loss_amount: '2.5000',
+        order_strategy: 'weighted_percent',
+        reorder_timeout_enabled: 1,
+        reorder_timeout_minutes: 30,
+        smart_reorder_enabled: 1,
+        sync_cost_price_enabled: 1,
+        sync_goods_name_enabled: 1,
       },
     );
   });

@@ -1,9 +1,22 @@
+export interface ProductGoodsInventoryConfigSummary {
+  allow_loss_sale_enabled: number;
+  combo_goods_enabled: number;
+  max_loss_amount: string;
+  order_strategy: string;
+  reorder_timeout_enabled: number;
+  reorder_timeout_minutes: number;
+  smart_reorder_enabled: number;
+  sync_cost_price_enabled: number;
+  sync_goods_name_enabled: number;
+}
+
 export interface ProductGoodsChannelGoodsSummary {
   brand_name: string;
   default_sell_price: string;
   goods_code: string;
   has_tax: number;
   id: number;
+  inventory_config_summary: ProductGoodsInventoryConfigSummary;
   name: string;
   subject_id: null | number;
   subject_name: string;
@@ -21,6 +34,9 @@ export interface ProductGoodsChannelBindingItem {
   effective_sell_price: string;
   id: number;
   is_auto_change: number;
+  order_time_end: string;
+  order_time_start: string;
+  order_weight: string;
   platform_account_id: number;
   platform_account_name: string;
   platform_has_tax: number;
@@ -75,6 +91,9 @@ export interface ProductGoodsChannelBindingFormOptionsResult {
 
 export interface ProductGoodsChannelBindingPayload {
   dock_status: number;
+  order_time_end: string;
+  order_time_start: string;
+  order_weight: string;
   platform_account_id: number;
   sort: number;
   source_cost_price: string;

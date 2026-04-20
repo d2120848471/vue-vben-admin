@@ -26,10 +26,13 @@ import {
 } from '#/api/modules/admin/products/goods-channels';
 
 import { buildProductGoodsChannelBindingPayload } from './mappers';
-import { isValidNonNegativeMoney } from './validators';
+import { isValidNonNegativeMoney, isValidTimeValue } from './validators';
 
 interface ChannelBindingDialogState {
   dock_status: number;
+  order_time_end: string;
+  order_time_start: string;
+  order_weight: string;
   platform_account_id: number;
   sort: number;
   source_cost_price: string;
@@ -57,6 +60,9 @@ const submitting = ref(false);
 
 const dialogForm = reactive<ChannelBindingDialogState>({
   dock_status: 1,
+  order_time_end: '',
+  order_time_start: '',
+  order_weight: '',
   platform_account_id: 0,
   sort: 0,
   source_cost_price: '',
@@ -74,8 +80,47 @@ const dialogTitle = computed(() =>
   props.editingBinding ? '编辑库存' : '新增库存',
 );
 
+function validateOrderWeight(
+  _rule: unknown,
+  value: string,
+  callback: (error?: Error) => void,
+) {
+  const normalized = String(value ?? '').trim();
+  if (normalized && !isValidNonNegativeMoney(normalized)) {
+    callback(new Error('下单权重格式错误'));
+    return;
+  }
+  callback();
+}
+
+function validateOrderTimeField(
+  label: '下单开始时段' | '下单结束时段',
+  value: string,
+  relatedValue: string,
+  callback: (error?: Error) => void,
+) {
+  const normalized = String(value ?? '').trim();
+  const relatedNormalized = String(relatedValue ?? '').trim();
+  if (!normalized && !relatedNormalized) {
+    callback();
+    return;
+  }
+  if (!normalized || !relatedNormalized) {
+    callback(new Error('下单开始时段和结束时段需同时填写'));
+    return;
+  }
+  if (!isValidTimeValue(normalized)) {
+    callback(new Error(`${label}格式错误`));
+    return;
+  }
+  callback();
+}
+
 function resetDialogForm() {
   dialogForm.dock_status = props.dockStatusOptions[0]?.value ?? 1;
+  dialogForm.order_time_end = '';
+  dialogForm.order_time_start = '';
+  dialogForm.order_weight = '';
   dialogForm.platform_account_id = 0;
   dialogForm.sort = 0;
   dialogForm.source_cost_price = '';
@@ -91,6 +136,9 @@ function syncDialogForm() {
   }
 
   dialogForm.dock_status = props.editingBinding.dock_status;
+  dialogForm.order_time_end = props.editingBinding.order_time_end;
+  dialogForm.order_time_start = props.editingBinding.order_time_start;
+  dialogForm.order_weight = props.editingBinding.order_weight;
   dialogForm.platform_account_id = props.editingBinding.platform_account_id;
   dialogForm.sort = props.editingBinding.sort;
   dialogForm.source_cost_price = props.editingBinding.source_cost_price;
@@ -151,6 +199,44 @@ const formRules = {
   ],
   supplier_goods_no: [
     { required: true, message: '请输入对接商品编号', trigger: 'blur' },
+  ],
+  order_time_end: [
+    {
+      validator: (
+        _rule: unknown,
+        value: string,
+        callback: (error?: Error) => void,
+      ) =>
+        validateOrderTimeField(
+          '下单结束时段',
+          value,
+          dialogForm.order_time_start,
+          callback,
+        ),
+      trigger: 'blur',
+    },
+  ],
+  order_time_start: [
+    {
+      validator: (
+        _rule: unknown,
+        value: string,
+        callback: (error?: Error) => void,
+      ) =>
+        validateOrderTimeField(
+          '下单开始时段',
+          value,
+          dialogForm.order_time_end,
+          callback,
+        ),
+      trigger: 'blur',
+    },
+  ],
+  order_weight: [
+    {
+      validator: validateOrderWeight,
+      trigger: 'blur',
+    },
   ],
 };
 
@@ -266,6 +352,38 @@ async function submitDialog() {
             :value="item.value"
           />
         </ElSelect>
+      </ElFormItem>
+      <ElFormItem
+        label="下单权重"
+        prop="order_weight"
+        :rules="formRules.order_weight"
+      >
+        <ElInput
+          v-model="dialogForm.order_weight"
+          data-test="channel-order-weight"
+        />
+      </ElFormItem>
+      <ElFormItem
+        label="下单开始时段"
+        prop="order_time_start"
+        :rules="formRules.order_time_start"
+      >
+        <ElInput
+          v-model="dialogForm.order_time_start"
+          data-test="channel-order-time-start"
+          placeholder="09:00"
+        />
+      </ElFormItem>
+      <ElFormItem
+        label="下单结束时段"
+        prop="order_time_end"
+        :rules="formRules.order_time_end"
+      >
+        <ElInput
+          v-model="dialogForm.order_time_end"
+          data-test="channel-order-time-end"
+          placeholder="18:00"
+        />
       </ElFormItem>
       <ElFormItem label="排序">
         <ElInputNumber v-model="dialogForm.sort" data-test="channel-sort" />

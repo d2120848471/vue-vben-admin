@@ -17,6 +17,7 @@ const apiMocks = vi.hoisted(() => ({
 const childDialogState = vi.hoisted(() => ({
   autoPriceProps: null as any,
   bindingProps: null as any,
+  inventoryConfigProps: null as any,
 }));
 
 vi.mock('#/api/modules/admin/products/goods-channels', () => apiMocks);
@@ -64,6 +65,40 @@ vi.mock('./GoodsChannelAutoPriceDialog.vue', () => ({
               { 'data-test': 'auto-price-dialog-stub' },
               String(props.binding?.id ?? ''),
             )
+          : null;
+    },
+  }),
+}));
+vi.mock('./GoodsChannelInventoryConfigDialog.vue', () => ({
+  default: defineComponent({
+    name: 'GoodsChannelInventoryConfigDialogStub',
+    props: {
+      goodsId: {
+        default: null,
+        type: Number,
+      },
+      visible: Boolean,
+    },
+    emits: ['saved', 'update:visible'],
+    setup(props, { emit }) {
+      childDialogState.inventoryConfigProps = props;
+      return () =>
+        props.visible
+          ? h('div', { 'data-test': 'inventory-config-dialog-stub' }, [
+              h(
+                'span',
+                { 'data-test': 'inventory-config-dialog-goods-id' },
+                String(props.goodsId ?? ''),
+              ),
+              h(
+                'button',
+                {
+                  'data-test': 'inventory-config-dialog-save',
+                  onClick: () => emit('saved'),
+                },
+                'save-inventory-config',
+              ),
+            ])
           : null;
     },
   }),
@@ -229,6 +264,7 @@ describe('GoodsChannelDialog', () => {
     vi.clearAllMocks();
     childDialogState.autoPriceProps = null;
     childDialogState.bindingProps = null;
+    childDialogState.inventoryConfigProps = null;
     apiMocks.getProductGoodsChannelBindingsApi.mockResolvedValue({
       goods: {
         brand_name: '腾讯视频',
@@ -236,6 +272,17 @@ describe('GoodsChannelDialog', () => {
         goods_code: 'GD0000000021',
         has_tax: 1,
         id: 21,
+        inventory_config_summary: {
+          allow_loss_sale_enabled: 1,
+          combo_goods_enabled: 0,
+          max_loss_amount: '2.5000',
+          order_strategy: 'weighted_percent',
+          reorder_timeout_enabled: 1,
+          reorder_timeout_minutes: 30,
+          smart_reorder_enabled: 1,
+          sync_cost_price_enabled: 1,
+          sync_goods_name_enabled: 1,
+        },
         name: '腾讯视频周卡',
         subject_id: 11,
         subject_name: '开票主体A',
@@ -253,6 +300,9 @@ describe('GoodsChannelDialog', () => {
           effective_sell_price: '19.9000',
           id: 31,
           is_auto_change: 0,
+          order_time_end: '18:00',
+          order_time_start: '09:00',
+          order_weight: '60.0000',
           platform_account_id: 101,
           platform_account_name: '渠道A',
           platform_has_tax: 1,
@@ -279,6 +329,9 @@ describe('GoodsChannelDialog', () => {
           effective_sell_price: '20.9000',
           id: 32,
           is_auto_change: 1,
+          order_time_end: '20:00',
+          order_time_start: '10:00',
+          order_weight: '40.0000',
           platform_account_id: 102,
           platform_account_name: '渠道B',
           platform_has_tax: 0,
@@ -322,6 +375,9 @@ describe('GoodsChannelDialog', () => {
     expect(apiMocks.getProductGoodsChannelBindingsApi).toHaveBeenCalledWith(21);
     expect(view.root.textContent).toContain('腾讯视频周卡');
     expect(view.root.textContent).toContain('新增库存');
+    expect(view.root.textContent).toContain('智能补单');
+    expect(view.root.textContent).toContain('百分比分配');
+    expect(view.root.textContent).toContain('修改配置');
     expect(view.root.textContent).not.toContain('批量开启对接状态');
     expect(view.root.textContent).not.toContain('20条/页');
     expect(findHeaderTexts(view.root)).toEqual([
@@ -430,6 +486,9 @@ describe('GoodsChannelDialog', () => {
       32,
       {
         dock_status: 1,
+        order_time_end: '20:00',
+        order_time_start: '10:00',
+        order_weight: '40.0000',
         platform_account_id: 102,
         sort: 20,
         source_cost_price: '11.0000',
@@ -438,6 +497,34 @@ describe('GoodsChannelDialog', () => {
         validate_template_id: null,
       },
     );
+    expect(apiMocks.getProductGoodsChannelBindingsApi).toHaveBeenCalledTimes(2);
+    expect(view.events.saved).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the inventory config dialog from the summary action and reloads after save', async () => {
+    const view = await renderDialog();
+    mountedRoots.push(view);
+
+    await flushPromises();
+    await nextTick();
+
+    findButton(view.root, '修改配置').click();
+    await flushPromises();
+    await nextTick();
+
+    expect(
+      view.root.querySelector('[data-test="inventory-config-dialog-goods-id"]')
+        ?.textContent,
+    ).toBe('21');
+
+    (
+      view.root.querySelector(
+        '[data-test="inventory-config-dialog-save"]',
+      ) as HTMLButtonElement
+    ).click();
+    await flushPromises();
+    await nextTick();
+
     expect(apiMocks.getProductGoodsChannelBindingsApi).toHaveBeenCalledTimes(2);
     expect(view.events.saved).toHaveBeenCalledTimes(1);
   });

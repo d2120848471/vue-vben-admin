@@ -1,35 +1,12 @@
 <script lang="ts" setup>
-import type {
-  ProductGoodsChannelBindingFormOptionsResult,
-  ProductGoodsChannelBindingItem,
-  ProductGoodsChannelBindingsResult,
-} from '#/api/modules/admin/products/goods-channels';
-
-import { computed, reactive, ref, watch } from 'vue';
-
-import {
-  ElButton,
-  ElDialog,
-  ElMessage,
-  ElMessageBox,
-  ElSwitch,
-} from 'element-plus';
-
-import {
-  deleteProductGoodsChannelBindingApi,
-  getProductGoodsChannelBindingFormOptionsApi,
-  getProductGoodsChannelBindingsApi,
-  updateProductGoodsChannelAutoPriceApi,
-  updateProductGoodsChannelBindingApi,
-} from '#/api/modules/admin/products/goods-channels';
+import { ElButton, ElDialog, ElSwitch } from 'element-plus';
 
 import GoodsChannelAutoPriceDialog from './GoodsChannelAutoPriceDialog.vue';
 import GoodsChannelBindingDialog from './GoodsChannelBindingDialog.vue';
-import {
-  buildProductGoodsChannelAutoPricePayload,
-  buildProductGoodsChannelBindingUpdatePayload,
-} from './mappers';
+import GoodsChannelInventoryConfigDialog from './GoodsChannelInventoryConfigDialog.vue';
+import GoodsChannelInventorySummary from './GoodsChannelInventorySummary.vue';
 import { buildProductGoodsChannelDialogColumns } from './schemas';
+import { useGoodsChannelDialog } from './useGoodsChannelDialog';
 
 const props = defineProps<{
   goodsId: null | number;
@@ -41,190 +18,35 @@ const emit = defineEmits<{
   'update:visible': [value: boolean];
 }>();
 
-const bindingDialogVisible = ref(false);
-const autoPriceDialogVisible = ref(false);
-const bindingListLoading = ref(false);
-const formOptionsGoodsId = ref<null | number>(null);
-const currentBinding = ref<null | ProductGoodsChannelBindingItem>(null);
-const goodsSummary = ref<null | ProductGoodsChannelBindingsResult['goods']>(
-  null,
-);
-const bindings = ref<ProductGoodsChannelBindingItem[]>([]);
-const dockStatusLoadingIds = reactive<Record<number, boolean>>({});
-const autoPriceLoadingIds = reactive<Record<number, boolean>>({});
-const formOptions = ref<ProductGoodsChannelBindingFormOptionsResult>({
-  auto_price_type_options: [],
-  dock_status_options: [],
-  platform_accounts: [],
-  validate_templates: [],
-});
 const tableColumns = buildProductGoodsChannelDialogColumns();
 
-const dialogVisible = computed({
-  get: () => props.visible,
-  set: (value: boolean) => emit('update:visible', value),
+const {
+  autoPriceDialogVisible,
+  autoPriceLoadingIds,
+  bindingDialogVisible,
+  bindingListLoading,
+  bindings,
+  currentBinding,
+  dialogVisible,
+  dockStatusLoadingIds,
+  formOptions,
+  goodsSummary,
+  handleAutoPriceSwitch,
+  handleDelete,
+  handleDockStatusChange,
+  handleSaved,
+  inventoryConfigDialogVisible,
+  openAutoPriceDialog,
+  openCreateDialog,
+  openEditDialog,
+  openInventoryConfigDialog,
+} = useGoodsChannelDialog(props, (event, value) => {
+  if (event === 'saved') {
+    emit('saved');
+    return;
+  }
+  emit('update:visible', value ?? false);
 });
-
-async function loadBindings() {
-  if (!props.goodsId) {
-    return;
-  }
-  bindingListLoading.value = true;
-  try {
-    const result = await getProductGoodsChannelBindingsApi(props.goodsId);
-    goodsSummary.value = result.goods;
-    bindings.value = result.list ?? [];
-  } finally {
-    bindingListLoading.value = false;
-  }
-}
-
-async function ensureFormOptionsLoaded() {
-  if (!props.goodsId || formOptionsGoodsId.value === props.goodsId) {
-    return;
-  }
-  // 表单选项接口按商品维度取数，goodsId 变了就必须重新拉取，不能复用上一商品的缓存。
-  formOptions.value = await getProductGoodsChannelBindingFormOptionsApi(
-    props.goodsId,
-  );
-  formOptionsGoodsId.value = props.goodsId;
-}
-
-function resetChildDialogs() {
-  bindingDialogVisible.value = false;
-  autoPriceDialogVisible.value = false;
-  currentBinding.value = null;
-}
-
-watch(
-  () => [props.visible, props.goodsId] as const,
-  async ([visible, goodsId]) => {
-    if (!visible || !goodsId) {
-      if (!visible) {
-        resetChildDialogs();
-        formOptionsGoodsId.value = null;
-      }
-      return;
-    }
-    await loadBindings();
-  },
-  { immediate: true },
-);
-
-async function openCreateDialog() {
-  await ensureFormOptionsLoaded();
-  currentBinding.value = null;
-  bindingDialogVisible.value = true;
-}
-
-async function openEditDialog(binding: ProductGoodsChannelBindingItem) {
-  await ensureFormOptionsLoaded();
-  currentBinding.value = binding;
-  bindingDialogVisible.value = true;
-}
-
-async function openAutoPriceDialog(
-  binding: ProductGoodsChannelBindingItem,
-  options?: {
-    forceEnable?: boolean;
-  },
-) {
-  await ensureFormOptionsLoaded();
-  currentBinding.value = options?.forceEnable
-    ? {
-        ...binding,
-        add_type:
-          binding.add_type ||
-          formOptions.value.auto_price_type_options[0]?.value ||
-          'fixed',
-        default_price:
-          binding.is_auto_change === 1 ? binding.default_price : '',
-        is_auto_change: 1,
-      }
-    : binding;
-  autoPriceDialogVisible.value = true;
-}
-
-async function handleDockStatusChange(
-  binding: ProductGoodsChannelBindingItem,
-  nextStatus: number | string,
-) {
-  if (!props.goodsId) {
-    return;
-  }
-  const normalizedStatus = Number(nextStatus);
-  dockStatusLoadingIds[binding.id] = true;
-  try {
-    await updateProductGoodsChannelBindingApi(
-      props.goodsId,
-      binding.id,
-      buildProductGoodsChannelBindingUpdatePayload(binding, {
-        dock_status: normalizedStatus,
-      }),
-    );
-    ElMessage.success(
-      normalizedStatus === 1 ? '对接状态已开启' : '对接状态已关闭',
-    );
-    await handleSaved();
-  } catch {
-    ElMessage.error('对接状态更新失败，请稍后重试');
-  } finally {
-    dockStatusLoadingIds[binding.id] = false;
-  }
-}
-
-async function handleAutoPriceSwitch(
-  binding: ProductGoodsChannelBindingItem,
-  nextStatus: number | string,
-) {
-  if (!props.goodsId) {
-    return;
-  }
-  const normalizedStatus = Number(nextStatus);
-  if (normalizedStatus === 1) {
-    await openAutoPriceDialog(binding, { forceEnable: true });
-    return;
-  }
-
-  autoPriceLoadingIds[binding.id] = true;
-  try {
-    await updateProductGoodsChannelAutoPriceApi(
-      props.goodsId,
-      binding.id,
-      buildProductGoodsChannelAutoPricePayload({
-        add_type: binding.add_type,
-        default_price: binding.default_price,
-        is_auto_change: 0,
-      }),
-    );
-    ElMessage.success('自动改价已关闭');
-    await handleSaved();
-  } catch {
-    ElMessage.error('自动改价更新失败，请稍后重试');
-  } finally {
-    autoPriceLoadingIds[binding.id] = false;
-  }
-}
-
-async function handleDelete(binding: ProductGoodsChannelBindingItem) {
-  if (!props.goodsId) {
-    return;
-  }
-  await ElMessageBox.confirm(
-    `确认删除渠道绑定 ${binding.display_name} 吗？`,
-    '删除确认',
-    { type: 'warning' },
-  );
-  await deleteProductGoodsChannelBindingApi(props.goodsId, binding.id);
-  ElMessage.success('渠道绑定已删除');
-  await handleSaved();
-}
-
-async function handleSaved() {
-  resetChildDialogs();
-  await loadBindings();
-  emit('saved');
-}
 
 function taxText(value: number | undefined) {
   return value === 1 ? '含税' : '未税';
@@ -266,6 +88,10 @@ function formatCellValue(value: null | number | string | undefined) {
           <span>默认售价 {{ goodsSummary.default_sell_price || '--' }}</span>
           <span>{{ goodsSummary.goods_code }}</span>
         </div>
+        <GoodsChannelInventorySummary
+          :summary="goodsSummary.inventory_config_summary"
+          @edit="openInventoryConfigDialog"
+        />
       </div>
 
       <div class="goods-channel-dialog__toolbar">
@@ -430,6 +256,13 @@ function formatCellValue(value: null | number | string | undefined) {
       @saved="handleSaved"
       @update:visible="autoPriceDialogVisible = $event"
     />
+
+    <GoodsChannelInventoryConfigDialog
+      :goods-id="goodsId"
+      :visible="inventoryConfigDialogVisible"
+      @saved="handleSaved"
+      @update:visible="inventoryConfigDialogVisible = $event"
+    />
   </ElDialog>
 </template>
 
@@ -518,32 +351,31 @@ function formatCellValue(value: null | number | string | undefined) {
 }
 
 .goods-channel-dialog__name-tag {
-  padding: 3px 10px;
+  padding: 2px 8px;
   font-size: 12px;
-  line-height: 20px;
   border-radius: 999px;
 }
 
 .goods-channel-dialog__name-tag--accent {
-  color: rgb(180 83 9);
-  background: rgb(245 158 11 / 16%);
+  color: var(--el-color-primary-dark-2);
+  background: color-mix(in srgb, var(--el-color-primary-light-9) 80%, white);
 }
 
 .goods-channel-dialog__name-tag--muted {
-  color: var(--el-text-color-secondary);
-  background: color-mix(in srgb, var(--el-fill-color-light) 92%, transparent);
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
 }
 
 .goods-channel-dialog__actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
   justify-content: center;
-  white-space: nowrap;
 }
 
 .goods-channel-dialog__empty {
   padding: 32px 0;
+  font-size: 14px;
   color: var(--el-text-color-secondary);
   text-align: center;
 }

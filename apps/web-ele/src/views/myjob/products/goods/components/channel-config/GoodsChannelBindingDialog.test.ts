@@ -303,6 +303,29 @@ function findButton(root: HTMLElement, label: string) {
   return button as HTMLButtonElement;
 }
 
+function fillRequiredBindingFields(root: HTMLElement) {
+  findInput(root, 'input[data-test="channel-platform-account"]').value = '101';
+  findInput(root, 'input[data-test="channel-platform-account"]').dispatchEvent(
+    new Event('input'),
+  );
+  findInput(root, 'input[data-test="channel-supplier-goods-no"]').value =
+    'SKU-001';
+  findInput(root, 'input[data-test="channel-supplier-goods-no"]').dispatchEvent(
+    new Event('input'),
+  );
+  findInput(root, 'input[data-test="channel-supplier-goods-name"]').value =
+    '腾讯周卡';
+  findInput(
+    root,
+    'input[data-test="channel-supplier-goods-name"]',
+  ).dispatchEvent(new Event('input'));
+  findInput(root, 'input[data-test="channel-source-cost-price"]').value =
+    '10.5000';
+  findInput(root, 'input[data-test="channel-source-cost-price"]').dispatchEvent(
+    new Event('input'),
+  );
+}
+
 describe('GoodsChannelBindingDialog', () => {
   const mountedRoots: Array<{ unmount: () => void }> = [];
 
@@ -355,6 +378,24 @@ describe('GoodsChannelBindingDialog', () => {
       view.root,
       'input[data-test="channel-validate-template"]',
     ).dispatchEvent(new Event('input'));
+    findInput(view.root, 'input[data-test="channel-order-weight"]').value =
+      ' 60.0000 ';
+    findInput(
+      view.root,
+      'input[data-test="channel-order-weight"]',
+    ).dispatchEvent(new Event('input'));
+    findInput(view.root, 'input[data-test="channel-order-time-start"]').value =
+      '09:00';
+    findInput(
+      view.root,
+      'input[data-test="channel-order-time-start"]',
+    ).dispatchEvent(new Event('input'));
+    findInput(view.root, 'input[data-test="channel-order-time-end"]').value =
+      '18:00';
+    findInput(
+      view.root,
+      'input[data-test="channel-order-time-end"]',
+    ).dispatchEvent(new Event('input'));
     findInput(view.root, 'input[data-test="channel-dock-status"]').value = '1';
     findInput(
       view.root,
@@ -372,6 +413,9 @@ describe('GoodsChannelBindingDialog', () => {
       21,
       {
         dock_status: 1,
+        order_time_end: '18:00',
+        order_time_start: '09:00',
+        order_weight: '60.0000',
         platform_account_id: 101,
         sort: 20,
         source_cost_price: '10.5000',
@@ -387,6 +431,9 @@ describe('GoodsChannelBindingDialog', () => {
     const view = await renderDialog({
       dock_status: 0,
       id: 31,
+      order_time_end: '20:00',
+      order_time_start: '10:00',
+      order_weight: '40.0000',
       platform_account_id: 102,
       sort: 30,
       source_cost_price: '11.0000',
@@ -404,6 +451,15 @@ describe('GoodsChannelBindingDialog', () => {
       findInput(view.root, 'input[data-test="channel-supplier-goods-name"]')
         .value,
     ).toBe('腾讯周卡-旧');
+    expect(
+      findInput(view.root, 'input[data-test="channel-order-weight"]').value,
+    ).toBe('40.0000');
+    expect(
+      findInput(view.root, 'input[data-test="channel-order-time-start"]').value,
+    ).toBe('10:00');
+    expect(
+      findInput(view.root, 'input[data-test="channel-order-time-end"]').value,
+    ).toBe('20:00');
 
     findInput(view.root, 'input[data-test="channel-sort"]').value = '5';
     findInput(view.root, 'input[data-test="channel-sort"]').dispatchEvent(
@@ -418,6 +474,9 @@ describe('GoodsChannelBindingDialog', () => {
       31,
       {
         dock_status: 0,
+        order_time_end: '20:00',
+        order_time_start: '10:00',
+        order_weight: '40.0000',
         platform_account_id: 102,
         sort: 5,
         source_cost_price: '11.0000',
@@ -461,6 +520,66 @@ describe('GoodsChannelBindingDialog', () => {
     findInput(
       view.root,
       'input[data-test="channel-source-cost-price"]',
+    ).dispatchEvent(new Event('input'));
+
+    findButton(view.root, '确定').click();
+    await flushPromises();
+
+    expect(apiMocks.createProductGoodsChannelBindingApi).not.toHaveBeenCalled();
+  });
+
+  it('does not submit when order weight format is invalid', async () => {
+    const view = await renderDialog();
+    mountedRoots.push(view);
+
+    fillRequiredBindingFields(view.root);
+    findInput(view.root, 'input[data-test="channel-order-weight"]').value =
+      'abc';
+    findInput(
+      view.root,
+      'input[data-test="channel-order-weight"]',
+    ).dispatchEvent(new Event('input'));
+
+    findButton(view.root, '确定').click();
+    await flushPromises();
+
+    expect(apiMocks.createProductGoodsChannelBindingApi).not.toHaveBeenCalled();
+  });
+
+  it('does not submit when order time window is incomplete', async () => {
+    const view = await renderDialog();
+    mountedRoots.push(view);
+
+    fillRequiredBindingFields(view.root);
+    findInput(view.root, 'input[data-test="channel-order-time-start"]').value =
+      '09:00';
+    findInput(
+      view.root,
+      'input[data-test="channel-order-time-start"]',
+    ).dispatchEvent(new Event('input'));
+
+    findButton(view.root, '确定').click();
+    await flushPromises();
+
+    expect(apiMocks.createProductGoodsChannelBindingApi).not.toHaveBeenCalled();
+  });
+
+  it('does not submit when order time format is invalid', async () => {
+    const view = await renderDialog();
+    mountedRoots.push(view);
+
+    fillRequiredBindingFields(view.root);
+    findInput(view.root, 'input[data-test="channel-order-time-start"]').value =
+      '9:00';
+    findInput(
+      view.root,
+      'input[data-test="channel-order-time-start"]',
+    ).dispatchEvent(new Event('input'));
+    findInput(view.root, 'input[data-test="channel-order-time-end"]').value =
+      '18:00';
+    findInput(
+      view.root,
+      'input[data-test="channel-order-time-end"]',
     ).dispatchEvent(new Event('input'));
 
     findButton(view.root, '确定').click();

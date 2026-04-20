@@ -1,5 +1,10 @@
 import type { ProductGoodsChannelBindingItem } from '#/api/modules/admin/products/goods-channels';
 
+import {
+  isValidNonNegativeInteger,
+  isValidNonNegativeMoney,
+} from './validators';
+
 function normalizeNumberValue(value: number | string) {
   const normalized = Number(String(value ?? '').trim());
   return Number.isFinite(normalized) ? normalized : 0;
@@ -15,6 +20,9 @@ function normalizeNullableId(value: null | number | string | undefined) {
  */
 export function buildProductGoodsChannelBindingPayload(input: {
   dock_status: number | string;
+  order_time_end?: string;
+  order_time_start?: string;
+  order_weight?: string;
   platform_account_id: number | string;
   sort: number | string;
   source_cost_price: string;
@@ -24,6 +32,9 @@ export function buildProductGoodsChannelBindingPayload(input: {
 }) {
   return {
     dock_status: normalizeNumberValue(input.dock_status),
+    order_time_end: String(input.order_time_end ?? '').trim(),
+    order_time_start: String(input.order_time_start ?? '').trim(),
+    order_weight: String(input.order_weight ?? '').trim(),
     platform_account_id: normalizeNumberValue(input.platform_account_id),
     sort: normalizeNumberValue(input.sort),
     source_cost_price: String(input.source_cost_price ?? '').trim(),
@@ -40,6 +51,9 @@ export function buildProductGoodsChannelBindingUpdatePayload(
   binding: Pick<
     ProductGoodsChannelBindingItem,
     | 'dock_status'
+    | 'order_time_end'
+    | 'order_time_start'
+    | 'order_weight'
     | 'platform_account_id'
     | 'sort'
     | 'source_cost_price'
@@ -49,6 +63,9 @@ export function buildProductGoodsChannelBindingUpdatePayload(
   >,
   overrides: Partial<{
     dock_status: number | string;
+    order_time_end: string;
+    order_time_start: string;
+    order_weight: string;
     platform_account_id: number | string;
     sort: number | string;
     source_cost_price: string;
@@ -59,6 +76,9 @@ export function buildProductGoodsChannelBindingUpdatePayload(
 ) {
   return buildProductGoodsChannelBindingPayload({
     dock_status: overrides.dock_status ?? binding.dock_status,
+    order_time_end: overrides.order_time_end ?? binding.order_time_end,
+    order_time_start: overrides.order_time_start ?? binding.order_time_start,
+    order_weight: overrides.order_weight ?? binding.order_weight,
     platform_account_id:
       overrides.platform_account_id ?? binding.platform_account_id,
     sort: overrides.sort ?? binding.sort,
@@ -94,5 +114,73 @@ export function buildProductGoodsChannelAutoPricePayload(input: {
       .toLowerCase(),
     default_price: String(input.default_price ?? '').trim(),
     is_auto_change: 1,
+  };
+}
+
+function normalizeBooleanValue(value: number | string) {
+  return normalizeNumberValue(value) > 0 ? 1 : 0;
+}
+
+function normalizeRequiredNonNegativeIntegerValue(value: number | string) {
+  const normalized = String(value ?? '').trim();
+  if (!isValidNonNegativeInteger(normalized)) {
+    throw new TypeError('补单时间必须是非负整数分钟');
+  }
+  return Number(normalized);
+}
+
+function normalizeRequiredNonNegativeMoneyValue(value: string) {
+  const normalized = String(value ?? '').trim();
+  if (!isValidNonNegativeMoney(normalized)) {
+    throw new TypeError('允许亏本金额格式错误');
+  }
+  return normalized;
+}
+
+/**
+ * 商品级库存配置有一组联动字段：
+ * 关闭补单时间时分钟数必须清零，关闭亏本销售时金额必须回落到后端默认值。
+ * 这里统一归一化，避免组件里散落重复判断。
+ */
+export function buildProductGoodsInventoryConfigPayload(input: {
+  allow_loss_sale_enabled: number | string;
+  combo_goods_enabled: number | string;
+  max_loss_amount: string;
+  order_strategy: string;
+  reorder_timeout_enabled: number | string;
+  reorder_timeout_minutes: number | string;
+  smart_reorder_enabled: number | string;
+  sync_cost_price_enabled: number | string;
+  sync_goods_name_enabled: number | string;
+}) {
+  const reorderTimeoutEnabled = normalizeBooleanValue(
+    input.reorder_timeout_enabled,
+  );
+  const allowLossSaleEnabled = normalizeBooleanValue(
+    input.allow_loss_sale_enabled,
+  );
+
+  return {
+    allow_loss_sale_enabled: allowLossSaleEnabled,
+    combo_goods_enabled: normalizeBooleanValue(input.combo_goods_enabled),
+    max_loss_amount:
+      allowLossSaleEnabled === 1
+        ? normalizeRequiredNonNegativeMoneyValue(input.max_loss_amount)
+        : '0.0000',
+    order_strategy: String(input.order_strategy ?? '').trim(),
+    reorder_timeout_enabled: reorderTimeoutEnabled,
+    reorder_timeout_minutes:
+      reorderTimeoutEnabled === 1
+        ? normalizeRequiredNonNegativeIntegerValue(
+            input.reorder_timeout_minutes,
+          )
+        : 0,
+    smart_reorder_enabled: normalizeBooleanValue(input.smart_reorder_enabled),
+    sync_cost_price_enabled: normalizeBooleanValue(
+      input.sync_cost_price_enabled,
+    ),
+    sync_goods_name_enabled: normalizeBooleanValue(
+      input.sync_goods_name_enabled,
+    ),
   };
 }
