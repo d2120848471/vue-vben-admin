@@ -113,7 +113,12 @@ export function normalizeCurrentUserResult(
 export function classifyAuthFailure(
   status: number,
   message: string,
-): 'forbidden' | 'force-logout' | 'none' {
+  businessCode?: number | string,
+): 'forbidden' | 'force-logout' | 'none' | 'unauthenticated' {
+  // 后端会用 HTTP 200 + code 401 表示 token 失效，前端必须按未登录处理。
+  if (Number(businessCode) === 401 || status === 401) {
+    return 'unauthenticated';
+  }
   if (status !== 403) {
     return 'none';
   }

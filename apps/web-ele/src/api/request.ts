@@ -59,6 +59,28 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
     },
   });
 
+  client.addResponseInterceptor({
+    fulfilled: async (response) => {
+      const responseData = response?.data ?? {};
+      const status = response?.status ?? 0;
+      const errorMessage =
+        responseData?.msg ?? responseData?.error ?? responseData?.message ?? '';
+      const authFailure = classifyAuthFailure(
+        status,
+        errorMessage,
+        responseData?.code,
+      );
+
+      if (authFailure === 'unauthenticated') {
+        const authStore = useAuthStore();
+        await authStore.logout(true, false);
+        throw Object.assign({}, response, { response });
+      }
+
+      return response;
+    },
+  });
+
   client.addResponseInterceptor(
     defaultResponseInterceptor({
       codeField: 'code',
@@ -83,7 +105,11 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
       const status = error?.response?.status ?? 0;
       const errorMessage =
         responseData?.msg ?? responseData?.error ?? responseData?.message ?? '';
-      const authFailure = classifyAuthFailure(status, errorMessage);
+      const authFailure = classifyAuthFailure(
+        status,
+        errorMessage,
+        responseData?.code,
+      );
 
       if (authFailure === 'force-logout') {
         const authStore = useAuthStore();

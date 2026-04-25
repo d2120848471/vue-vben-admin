@@ -100,6 +100,16 @@ describe('auth-session', () => {
     expect(classifyAuthFailure(500, '服务异常')).toBe('none');
   });
 
+  it('classifies business code 401 and HTTP 401 as unauthenticated', () => {
+    expect(classifyAuthFailure(200, '未登录或登录已失效', 401)).toBe(
+      'unauthenticated',
+    );
+    expect(classifyAuthFailure(200, '未登录或登录已失效', '401')).toBe(
+      'unauthenticated',
+    );
+    expect(classifyAuthFailure(401, 'Unauthorized')).toBe('unauthenticated');
+  });
+
   it('maps backend user into compatible UserInfo shape', () => {
     expect(
       mapBackendUserToUserInfo({
