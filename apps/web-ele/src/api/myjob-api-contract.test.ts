@@ -17,6 +17,7 @@ import {
   updateGroupStatusApi,
 } from '#/api/modules/admin/groups';
 import { getLoginLogsApi, getOperationLogsApi } from '#/api/modules/admin/logs';
+import { getOrderListApi } from '#/api/modules/admin/orders';
 import {
   addBrandApi,
   deleteBrandApi,
@@ -1135,6 +1136,49 @@ describe('myjob api contract', () => {
       '/admin/supplier-platforms/21/balance/refresh',
       {},
     );
+  });
+
+  it('uses the refactored orders endpoint', async () => {
+    requestClientMock.get.mockResolvedValueOnce({
+      list: [],
+      pagination: { page: 1, page_size: 20, total: 0 },
+      stats: {
+        today_order_amount: '0.0000',
+        today_order_count: 0,
+        yesterday_order_amount: '0.0000',
+        yesterday_order_count: 0,
+      },
+    });
+
+    await getOrderListApi({
+      channel_id: 21,
+      end_time: '2026-04-25 23:59:59',
+      has_tax: '1',
+      is_card: '0',
+      keyword: 'O202604250001',
+      keyword_by: 'order_no',
+      page: 1,
+      page_size: 20,
+      quick_range: 'today',
+      start_time: '2026-04-25 00:00:00',
+      status: 'success',
+    });
+
+    expect(requestClientMock.get).toHaveBeenCalledWith('/admin/orders', {
+      params: {
+        channel_id: 21,
+        end_time: '2026-04-25 23:59:59',
+        has_tax: '1',
+        is_card: '0',
+        keyword: 'O202604250001',
+        keyword_by: 'order_no',
+        page: 1,
+        page_size: 20,
+        quick_range: 'today',
+        start_time: '2026-04-25 00:00:00',
+        status: 'success',
+      },
+    });
   });
 
   it('uses the refactored group, subject, log and settings endpoints', async () => {
