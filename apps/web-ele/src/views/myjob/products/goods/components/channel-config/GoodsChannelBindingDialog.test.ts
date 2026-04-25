@@ -225,7 +225,13 @@ function flushPromises() {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-async function renderDialog(editingBinding: any = null, visible = true) {
+async function renderDialog(
+  editingBinding: any = null,
+  visible = true,
+  options: {
+    platformAccounts?: any[];
+  } = {},
+) {
   const root = document.createElement('div');
   document.body.append(root);
 
@@ -245,7 +251,7 @@ async function renderDialog(editingBinding: any = null, visible = true) {
           ],
           editingBinding: editingBindingRef.value,
           goodsId: 21,
-          platformAccounts: [
+          platformAccounts: options.platformAccounts ?? [
             {
               connect_status: 1,
               connect_status_text: '正常',
@@ -427,6 +433,27 @@ describe('GoodsChannelBindingDialog', () => {
     expect(view.events.saved).toHaveBeenCalledTimes(1);
   });
 
+  it('defaults the platform account to the first channel when creating', async () => {
+    const view = await renderDialog();
+    mountedRoots.push(view);
+
+    expect(
+      findInput(view.root, 'input[data-test="channel-platform-account"]').value,
+    ).toBe('101');
+  });
+
+  it('enables search on the platform account select', async () => {
+    const view = await renderDialog();
+    mountedRoots.push(view);
+
+    expect(
+      findInput(
+        view.root,
+        'input[data-test="channel-platform-account"]',
+      ).hasAttribute('filterable'),
+    ).toBe(true);
+  });
+
   it('renders editing values and updates the existing binding', async () => {
     const view = await renderDialog({
       dock_status: 0,
@@ -498,7 +525,7 @@ describe('GoodsChannelBindingDialog', () => {
   });
 
   it('does not submit when platform account remains zero', async () => {
-    const view = await renderDialog();
+    const view = await renderDialog(null, true, { platformAccounts: [] });
     mountedRoots.push(view);
 
     findInput(view.root, 'input[data-test="channel-supplier-goods-no"]').value =

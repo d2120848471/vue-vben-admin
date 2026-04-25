@@ -295,6 +295,18 @@ describe('GoodsDialog', () => {
     }
   });
 
+  it('enables search on the brand cascader', async () => {
+    const view = await renderDialog(null, true);
+    mountedRoots.push(view);
+
+    const brandPath = findInput(
+      view.root,
+      'input[data-test="goods-brand-path"]',
+    );
+
+    expect(brandPath.hasAttribute('filterable')).toBe(true);
+  });
+
   it('loads subject options only when the dialog opens and submits create payload', async () => {
     const view = await renderDialog(null, false);
     mountedRoots.push(view);

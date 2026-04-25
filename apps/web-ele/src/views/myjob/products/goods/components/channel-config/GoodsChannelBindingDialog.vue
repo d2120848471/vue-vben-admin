@@ -121,7 +121,8 @@ function resetDialogForm() {
   dialogForm.order_time_end = '';
   dialogForm.order_time_start = '';
   dialogForm.order_weight = '';
-  dialogForm.platform_account_id = 0;
+  // 新增库存时默认选中第一个可用渠道，避免 Element Plus 在无匹配选项时直接回显空态值 0。
+  dialogForm.platform_account_id = props.platformAccounts[0]?.id ?? 0;
   dialogForm.sort = 0;
   dialogForm.source_cost_price = '';
   dialogForm.supplier_goods_name = '';
@@ -285,6 +286,7 @@ async function submitDialog() {
           v-model="dialogForm.platform_account_id"
           data-test="channel-platform-account"
           class="w-full"
+          filterable
         >
           <ElOption
             v-for="item in platformAccounts"

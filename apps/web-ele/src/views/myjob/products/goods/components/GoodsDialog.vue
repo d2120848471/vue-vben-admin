@@ -531,6 +531,7 @@ watch(
                 :options="brandCascaderOptions"
                 class="w-full"
                 data-test="goods-brand-path"
+                filterable
                 placeholder="请选择末级品牌"
               />
             </ElFormItem>
