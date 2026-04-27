@@ -14,6 +14,7 @@ describe('products routes', () => {
             'product.template',
             'product.purchase_limit',
             'supplier.index',
+            'order.recharge_risk',
           ],
           icon: 'lucide:package',
           order: 20,
@@ -66,6 +67,15 @@ describe('products routes', () => {
             },
             name: 'ProductPurchaseLimits',
             path: '/products/purchase-limits',
+          },
+          {
+            component: expect.any(Function),
+            meta: {
+              authority: ['order.recharge_risk'],
+              title: '风控管理',
+            },
+            name: 'ProductRechargeRisks',
+            path: '/products/recharge-risks',
           },
           {
             component: expect.any(Function),

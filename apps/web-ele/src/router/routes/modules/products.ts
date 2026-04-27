@@ -10,6 +10,7 @@ const routes: RouteRecordRaw[] = [
         'product.template',
         'product.purchase_limit',
         'supplier.index',
+        'order.recharge_risk',
       ],
       icon: 'lucide:package',
       order: 20,
@@ -63,6 +64,16 @@ const routes: RouteRecordRaw[] = [
         },
         name: 'ProductPurchaseLimits',
         path: '/products/purchase-limits',
+      },
+      {
+        component: () =>
+          import('#/views/myjob/products/recharge-risks/index.vue'),
+        meta: {
+          authority: ['order.recharge_risk'],
+          title: '风控管理',
+        },
+        name: 'ProductRechargeRisks',
+        path: '/products/recharge-risks',
       },
       {
         component: () => import('#/views/myjob/products/suppliers/index.vue'),

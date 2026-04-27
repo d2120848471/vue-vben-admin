@@ -70,6 +70,14 @@ import {
   updatePurchaseLimitStrategyStatusApi,
 } from '#/api/modules/admin/products/purchase-limits';
 import {
+  addRechargeRiskRuleApi,
+  deleteRechargeRiskRuleApi,
+  getRechargeRiskRecordListApi,
+  getRechargeRiskRuleListApi,
+  updateRechargeRiskRuleApi,
+  updateRechargeRiskRuleStatusApi,
+} from '#/api/modules/admin/products/recharge-risks';
+import {
   addSupplierPlatformApi,
   deleteSupplierPlatformApi,
   getSupplierPlatformDetailApi,
@@ -605,6 +613,101 @@ describe('myjob api contract', () => {
     expect(requestClientMock.delete).toHaveBeenNthCalledWith(
       1,
       '/admin/purchase-limit-strategies/31',
+    );
+  });
+
+  it('uses the recharge risk endpoints', async () => {
+    requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
+    requestClientMock.post.mockResolvedValueOnce({ id: 41 });
+    requestClientMock.put.mockResolvedValueOnce(undefined);
+    requestClientMock.request.mockResolvedValueOnce(undefined);
+    requestClientMock.delete.mockResolvedValueOnce(undefined);
+    requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
+
+    await getRechargeRiskRuleListApi({
+      account: 'risk-account-001',
+      goods_keyword: '剪映',
+      page: 1,
+      page_size: 20,
+      status: '1',
+    });
+    await addRechargeRiskRuleApi({
+      account: 'risk-account-001',
+      goods_keyword: '剪映',
+      reason: '客户多次提交错误账号',
+      status: 1,
+    });
+    await updateRechargeRiskRuleApi(41, {
+      account: 'risk-account-001',
+      goods_keyword: '醒图',
+      reason: '更新后的风控原因',
+      status: 0,
+    });
+    await updateRechargeRiskRuleStatusApi(41, 1);
+    await deleteRechargeRiskRuleApi(41);
+    await getRechargeRiskRecordListApi({
+      account: 'risk-account-001',
+      end_time: '2026-04-27 23:59:59',
+      goods_keyword: '醒图',
+      page: 2,
+      page_size: 30,
+      start_time: '2026-04-27 00:00:00',
+    });
+
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      1,
+      '/admin/recharge-risks/rules',
+      {
+        params: {
+          account: 'risk-account-001',
+          goods_keyword: '剪映',
+          page: 1,
+          page_size: 20,
+          status: '1',
+        },
+      },
+    );
+    expect(requestClientMock.post).toHaveBeenCalledWith(
+      '/admin/recharge-risks/rules',
+      {
+        account: 'risk-account-001',
+        goods_keyword: '剪映',
+        reason: '客户多次提交错误账号',
+        status: 1,
+      },
+    );
+    expect(requestClientMock.put).toHaveBeenCalledWith(
+      '/admin/recharge-risks/rules/41',
+      {
+        account: 'risk-account-001',
+        goods_keyword: '醒图',
+        reason: '更新后的风控原因',
+        status: 0,
+      },
+    );
+    expect(requestClientMock.request).toHaveBeenCalledWith(
+      '/admin/recharge-risks/rules/41/status',
+      {
+        data: { status: 1 },
+        method: 'PATCH',
+      },
+    );
+    expect(requestClientMock.delete).toHaveBeenCalledWith(
+      '/admin/recharge-risks/rules/41',
+    );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      2,
+      '/admin/recharge-risks/records',
+      {
+        params: {
+          account: 'risk-account-001',
+          end_time: '2026-04-27 23:59:59',
+          goods_keyword: '醒图',
+          page: 2,
+          page_size: 30,
+          start_time: '2026-04-27 00:00:00',
+        },
+      },
     );
   });
 
