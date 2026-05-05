@@ -490,10 +490,7 @@ export function resolvePriceChangeSourceText(source?: string) {
   return PRICE_CHANGE_SOURCE_LABELS[source] ?? source;
 }
 
-export function formatPriceChangeRange(
-  oldValue?: string,
-  newValue?: string,
-) {
+export function formatPriceChangeRange(oldValue?: string, newValue?: string) {
   return `${oldValue || '--'} -> ${newValue || '--'}`;
 }
 
@@ -848,21 +845,29 @@ describe('PriceChangesPage', () => {
     const view = await renderPage();
     mounted.push(view);
 
-    expect(view.root.querySelector('[data-test="price-change-grid"]')).toBeTruthy();
+    expect(
+      view.root.querySelector('[data-test="price-change-grid"]'),
+    ).toBeTruthy();
     expect(view.root.textContent).toContain('卡卡云测试账号');
     expect(view.root.textContent).toContain('#101');
     expect(view.root.textContent).toContain('PRICE-CHANGE-001');
     expect(view.root.textContent).toContain('自动改价测试商品');
     expect(view.root.textContent).toContain('2582531');
     expect(view.root.textContent).toContain('上游测试商品');
-    expect(gridConfigState.latest.formOptions.schema.map((item: any) => item.fieldName)).toEqual([
+    expect(
+      gridConfigState.latest.formOptions.schema.map(
+        (item: any) => item.fieldName,
+      ),
+    ).toEqual([
       'source',
       'keyword',
       'supplier_goods_no',
       'platform_id',
       'date_range',
     ]);
-    expect(gridConfigState.latest.gridOptions.columns.map((item: any) => item.field)).toEqual([
+    expect(
+      gridConfigState.latest.gridOptions.columns.map((item: any) => item.field),
+    ).toEqual([
       'source',
       'platform',
       'goods',
@@ -889,18 +894,21 @@ describe('PriceChangesPage', () => {
     const view = await renderPage();
     mounted.push(view);
 
-    const result = await gridConfigState.latest.gridOptions.proxyConfig.ajax.query(
-      { page: { currentPage: 2, pageSize: 30 } },
-      {
-        date_range: ['2026-05-06 00:00:00', '2026-05-06 23:59:59'],
-        keyword: ' PRICE-CHANGE-001 ',
-        platform_id: 101,
-        source: 'push',
-        supplier_goods_no: ' 2582531 ',
-      },
-    );
+    const result =
+      await gridConfigState.latest.gridOptions.proxyConfig.ajax.query(
+        { page: { currentPage: 2, pageSize: 30 } },
+        {
+          date_range: ['2026-05-06 00:00:00', '2026-05-06 23:59:59'],
+          keyword: ' PRICE-CHANGE-001 ',
+          platform_id: 101,
+          source: 'push',
+          supplier_goods_no: ' 2582531 ',
+        },
+      );
 
-    expect(apiMocks.getProductGoodsChannelPriceChangeListApi).toHaveBeenCalledWith({
+    expect(
+      apiMocks.getProductGoodsChannelPriceChangeListApi,
+    ).toHaveBeenCalledWith({
       end_at: '2026-05-06 23:59:59',
       keyword: 'PRICE-CHANGE-001',
       page: 2,
@@ -1006,7 +1014,9 @@ const { PriceChangeGrid } = usePriceChangePage();
       <template #platform="{ row }">
         <div class="leading-5">
           <div>{{ row.platform_account_name || '--' }}</div>
-          <div class="text-xs text-gray-500">#{{ row.platform_account_id }}</div>
+          <div class="text-xs text-gray-500">
+            #{{ row.platform_account_id }}
+          </div>
         </div>
       </template>
 

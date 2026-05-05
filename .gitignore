@@ -57,6 +57,7 @@ vite.config.ts.*
 
 # AI
 docs/
+.worktrees/
 .agent
 .agents
 .claude
