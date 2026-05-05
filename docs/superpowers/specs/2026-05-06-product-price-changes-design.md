@@ -87,7 +87,7 @@
 
 请求：
 
-```ts
+```text
 GET /admin/product-goods-channel-price-changes
 ```
 
