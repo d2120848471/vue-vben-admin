@@ -13,6 +13,7 @@ describe('products routes', () => {
             'product.goods',
             'product.template',
             'product.purchase_limit',
+            'product.price_change',
             'supplier.index',
             'order.recharge_risk',
           ],
@@ -67,6 +68,15 @@ describe('products routes', () => {
             },
             name: 'ProductPurchaseLimits',
             path: '/products/purchase-limits',
+          },
+          {
+            component: expect.any(Function),
+            meta: {
+              authority: ['product.price_change'],
+              title: '自动改价记录',
+            },
+            name: 'ProductPriceChanges',
+            path: '/products/price-changes',
           },
           {
             component: expect.any(Function),

@@ -9,6 +9,7 @@ const routes: RouteRecordRaw[] = [
         'product.goods',
         'product.template',
         'product.purchase_limit',
+        'product.price_change',
         'supplier.index',
         'order.recharge_risk',
       ],
@@ -64,6 +65,16 @@ const routes: RouteRecordRaw[] = [
         },
         name: 'ProductPurchaseLimits',
         path: '/products/purchase-limits',
+      },
+      {
+        component: () =>
+          import('#/views/myjob/products/price-changes/index.vue'),
+        meta: {
+          authority: ['product.price_change'],
+          title: '自动改价记录',
+        },
+        name: 'ProductPriceChanges',
+        path: '/products/price-changes',
       },
       {
         component: () =>

@@ -61,6 +61,7 @@ import {
   sortIndustryRelationBrandApi,
   updateIndustryApi,
 } from '#/api/modules/admin/products/industries';
+import { getProductGoodsChannelPriceChangeListApi } from '#/api/modules/admin/products/price-changes';
 import {
   addPurchaseLimitStrategyApi,
   deletePurchaseLimitStrategyApi,
@@ -1025,6 +1026,67 @@ describe('myjob api contract', () => {
           is_auto_change: 1,
         },
         method: 'PATCH',
+      },
+    );
+  });
+
+  it('uses the product goods channel price change endpoint', async () => {
+    expect(typeof getProductGoodsChannelPriceChangeListApi).toBe('function');
+
+    requestClientMock.get.mockResolvedValueOnce({
+      list: [
+        {
+          binding_id: 31,
+          change_amount: '2.0000',
+          changed_at: '2026-05-06 10:00:00',
+          description: '变动前 10.0000，变动后 12.0000',
+          goods_code: 'PRICE-CHANGE-001',
+          goods_icon: '',
+          goods_id: 21,
+          goods_name: '自动改价测试商品',
+          id: 1,
+          new_cost_price: '12.0000',
+          new_effective_sell_price: '22.0000',
+          new_source_cost_price: '12.0000',
+          old_cost_price: '10.0000',
+          old_effective_sell_price: '20.0000',
+          old_source_cost_price: '10.0000',
+          platform_account_id: 101,
+          platform_account_name: '卡卡云测试账号',
+          provider_code: 'kakayun',
+          raw_payload: '{}',
+          source: 'push',
+          supplier_goods_name: '上游测试商品',
+          supplier_goods_no: '2582531',
+        },
+      ],
+      pagination: { page: 1, page_size: 20, total: 1 },
+    });
+
+    await getProductGoodsChannelPriceChangeListApi({
+      end_at: '2026-05-06 23:59:59',
+      keyword: 'PRICE-CHANGE-001',
+      page: 1,
+      page_size: 20,
+      platform_id: 101,
+      source: 'push',
+      start_at: '2026-05-06 00:00:00',
+      supplier_goods_no: '2582531',
+    });
+
+    expect(requestClientMock.get).toHaveBeenCalledWith(
+      '/admin/product-goods-channel-price-changes',
+      {
+        params: {
+          end_at: '2026-05-06 23:59:59',
+          keyword: 'PRICE-CHANGE-001',
+          page: 1,
+          page_size: 20,
+          platform_id: 101,
+          source: 'push',
+          start_at: '2026-05-06 00:00:00',
+          supplier_goods_no: '2582531',
+        },
       },
     );
   });
