@@ -8,6 +8,18 @@ import {
 } from '#/api/core/auth';
 import { getUserInfoApi } from '#/api/core/user';
 import {
+  addCustomerApi,
+  deleteCustomerApi,
+  getCustomerDetailApi,
+  getCustomerListApi,
+  getCustomerTrashApi,
+  resetCustomerPasswordApi,
+  resetCustomerPayPasswordApi,
+  restoreCustomerApi,
+  updateCustomerApi,
+  updateCustomerStatusApi,
+} from '#/api/modules/admin/customers';
+import {
   addGroupApi,
   deleteGroupApi,
   getGroupAuthApi,
@@ -115,6 +127,12 @@ import {
   updateAdminUserNotifyApi,
   updateAdminUserStatusApi,
 } from '#/api/modules/admin/users';
+import {
+  forgotCustomerPasswordApi,
+  loginCustomerApi,
+  registerCustomerApi,
+  sendCustomerSMSApi,
+} from '#/api/modules/customer/auth';
 
 const requestClientMock = vi.hoisted(() => ({
   delete: vi.fn(),
@@ -124,7 +142,12 @@ const requestClientMock = vi.hoisted(() => ({
   request: vi.fn(),
 }));
 
+const customerAuthRequestClientMock = vi.hoisted(() => ({
+  post: vi.fn(),
+}));
+
 vi.mock('#/api/request', () => ({
+  customerAuthRequestClient: customerAuthRequestClientMock,
   requestClient: requestClientMock,
 }));
 
@@ -255,6 +278,209 @@ describe('myjob api contract', () => {
       2,
       '/admin/users/business',
       { data: { ids: [1, 2] } },
+    );
+  });
+
+  it('uses the customer management endpoints', async () => {
+    requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
+    requestClientMock.get.mockResolvedValueOnce({ list: [], pagination: {} });
+    requestClientMock.get.mockResolvedValueOnce({ id: 7 });
+    requestClientMock.post.mockResolvedValueOnce({ id: 7 });
+    requestClientMock.put.mockResolvedValueOnce(undefined);
+    requestClientMock.request.mockResolvedValueOnce(undefined);
+    requestClientMock.delete.mockResolvedValueOnce(undefined);
+    requestClientMock.request.mockResolvedValueOnce(undefined);
+    requestClientMock.request.mockResolvedValueOnce(undefined);
+    requestClientMock.request.mockResolvedValueOnce(undefined);
+
+    await getCustomerListApi({
+      keyword: '测试',
+      page: 1,
+      page_size: 20,
+      status: 1,
+    });
+    await getCustomerTrashApi({ keyword: '回收', page: 2, page_size: 10 });
+    await getCustomerDetailApi(7);
+    await addCustomerApi({
+      company_name: '测试公司',
+      confirm_password: 'Abc_123',
+      confirm_pay_password: '123456',
+      password: 'Abc_123',
+      pay_password: '123456',
+      phone: '13800000000',
+      status: 1,
+    });
+    await updateCustomerApi(7, {
+      company_name: '编辑公司',
+      phone: '13800000001',
+      status: 0,
+    });
+    await updateCustomerStatusApi(7, 0);
+    await deleteCustomerApi(7);
+    await restoreCustomerApi(7);
+    await resetCustomerPasswordApi(7, {
+      confirm_password: 'New_123',
+      password: 'New_123',
+    });
+    await resetCustomerPayPasswordApi(7, {
+      confirm_pay_password: '654321',
+      pay_password: '654321',
+    });
+
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      1,
+      '/admin/customers',
+      {
+        params: { keyword: '测试', page: 1, page_size: 20, status: 1 },
+      },
+    );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      2,
+      '/admin/customers/trash',
+      {
+        params: { keyword: '回收', page: 2, page_size: 10 },
+      },
+    );
+    expect(requestClientMock.get).toHaveBeenNthCalledWith(
+      3,
+      '/admin/customers/7',
+    );
+    expect(requestClientMock.post).toHaveBeenCalledWith('/admin/customers', {
+      company_name: '测试公司',
+      confirm_password: 'Abc_123',
+      confirm_pay_password: '123456',
+      password: 'Abc_123',
+      pay_password: '123456',
+      phone: '13800000000',
+      status: 1,
+    });
+    expect(requestClientMock.put).toHaveBeenCalledWith('/admin/customers/7', {
+      company_name: '编辑公司',
+      phone: '13800000001',
+      status: 0,
+    });
+    expect(requestClientMock.request).toHaveBeenNthCalledWith(
+      1,
+      '/admin/customers/7/status',
+      {
+        data: { status: 0 },
+        method: 'PATCH',
+      },
+    );
+    expect(requestClientMock.delete).toHaveBeenCalledWith('/admin/customers/7');
+    expect(requestClientMock.request).toHaveBeenNthCalledWith(
+      2,
+      '/admin/customers/7/restore',
+      {
+        method: 'PATCH',
+      },
+    );
+    expect(requestClientMock.request).toHaveBeenNthCalledWith(
+      3,
+      '/admin/customers/7/password',
+      {
+        data: { confirm_password: 'New_123', password: 'New_123' },
+        method: 'PATCH',
+      },
+    );
+    expect(requestClientMock.request).toHaveBeenNthCalledWith(
+      4,
+      '/admin/customers/7/pay-password',
+      {
+        data: { confirm_pay_password: '654321', pay_password: '654321' },
+        method: 'PATCH',
+      },
+    );
+  });
+
+  it('uses the customer auth endpoints', async () => {
+    customerAuthRequestClientMock.post.mockResolvedValueOnce(undefined);
+    customerAuthRequestClientMock.post.mockResolvedValueOnce({
+      customer: {
+        company_name: '注册公司',
+        id: 10,
+        phone: '13800000000',
+        status: 1,
+      },
+      token: 'customer-token-register',
+    });
+    customerAuthRequestClientMock.post.mockResolvedValueOnce({
+      customer: {
+        company_name: '注册公司',
+        id: 10,
+        phone: '13800000000',
+        status: 1,
+      },
+      token: 'customer-token-login',
+    });
+    customerAuthRequestClientMock.post.mockResolvedValueOnce(undefined);
+
+    await sendCustomerSMSApi({
+      phone: '13800000000',
+      scene: 'register',
+    });
+    await registerCustomerApi({
+      company_name: '注册公司',
+      confirm_password: 'Abc_123',
+      confirm_pay_password: '123456',
+      password: 'Abc_123',
+      pay_password: '123456',
+      phone: '13800000000',
+      sms_code: '123456',
+    });
+    await loginCustomerApi({
+      password: 'Abc_123',
+      phone: '13800000000',
+    });
+    await forgotCustomerPasswordApi({
+      confirm_password: 'New_123',
+      password: 'New_123',
+      phone: '13800000000',
+      sms_code: '654321',
+    });
+
+    expect(customerAuthRequestClientMock.post).toHaveBeenNthCalledWith(
+      1,
+      '/customer/auth/sms/send',
+      {
+        phone: '13800000000',
+        scene: 'register',
+      },
+    );
+    expect(customerAuthRequestClientMock.post).toHaveBeenNthCalledWith(
+      2,
+      '/customer/auth/register',
+      {
+        company_name: '注册公司',
+        confirm_password: 'Abc_123',
+        confirm_pay_password: '123456',
+        password: 'Abc_123',
+        pay_password: '123456',
+        phone: '13800000000',
+        sms_code: '123456',
+      },
+    );
+    expect(customerAuthRequestClientMock.post).toHaveBeenNthCalledWith(
+      3,
+      '/customer/auth/login',
+      {
+        password: 'Abc_123',
+        phone: '13800000000',
+      },
+    );
+    expect(customerAuthRequestClientMock.post).toHaveBeenNthCalledWith(
+      4,
+      '/customer/auth/forgot-password',
+      {
+        confirm_password: 'New_123',
+        password: 'New_123',
+        phone: '13800000000',
+        sms_code: '654321',
+      },
+    );
+    expect(requestClientMock.post).not.toHaveBeenCalledWith(
+      expect.stringMatching(/^\/customer\/auth/),
+      expect.anything(),
     );
   });
 

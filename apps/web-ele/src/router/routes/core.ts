@@ -51,6 +51,47 @@ const coreRoutes: RouteRecordRaw[] = [
     ],
   },
   {
+    component: AuthPageLayout,
+    meta: {
+      hideInTab: true,
+      title: '客户认证',
+    },
+    name: 'CustomerAuthentication',
+    path: '/customer/auth',
+    redirect: '/customer/auth/login',
+    children: [
+      {
+        component: () => import('#/views/customer/auth/login.vue'),
+        meta: { title: '客户登录' },
+        name: 'CustomerLogin',
+        path: 'login',
+      },
+      {
+        component: () => import('#/views/customer/auth/register.vue'),
+        meta: { title: '客户注册' },
+        name: 'CustomerRegister',
+        path: 'register',
+      },
+      {
+        component: () => import('#/views/customer/auth/forgot-password.vue'),
+        meta: { title: '忘记密码' },
+        name: 'CustomerForgotPassword',
+        path: 'forgot-password',
+      },
+    ],
+  },
+  {
+    component: () => import('#/views/customer/home/index.vue'),
+    meta: {
+      hideInBreadcrumb: true,
+      hideInMenu: true,
+      hideInTab: true,
+      title: '客户首页',
+    },
+    name: 'CustomerHome',
+    path: '/customer/home',
+  },
+  {
     component: () => import('#/views/_core/fallback/forbidden.vue'),
     meta: {
       hideInBreadcrumb: true,

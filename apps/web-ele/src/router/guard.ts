@@ -8,7 +8,7 @@ import { useAccessStore, useUserStore } from '@vben/stores';
 import { hasAuthority, startProgress, stopProgress } from '@vben/utils';
 
 import { accessRoutes, coreRouteNames } from '#/router/routes';
-import { useAuthStore } from '#/store';
+import { useAuthStore, useCustomerAuthStore } from '#/store';
 
 import { generateAccess } from './access';
 
@@ -62,6 +62,31 @@ function setupCommonGuard(router: Router) {
     if (preferences.transition.progress) {
       stopProgress();
     }
+  });
+}
+
+/**
+ * 客户侧登录态守卫配置，客户 token 不进入后台权限访问守卫。
+ */
+function setupCustomerGuard(router: Router) {
+  router.beforeEach((to) => {
+    const customerAuthStore = useCustomerAuthStore();
+    const isCustomerAuthRoute = to.path.startsWith('/customer/auth');
+    const isCustomerHomeRoute = to.path === '/customer/home';
+
+    if (to.path === '/customer/auth/login' && customerAuthStore.token) {
+      return { path: '/customer/home', replace: true };
+    }
+
+    if (isCustomerHomeRoute && !customerAuthStore.token) {
+      return { path: '/customer/auth/login', replace: true };
+    }
+
+    if (isCustomerAuthRoute || isCustomerHomeRoute) {
+      return true;
+    }
+
+    return true;
   });
 }
 
@@ -138,6 +163,7 @@ function setupAccessGuard(router: Router) {
 
 function createRouterGuard(router: Router) {
   setupCommonGuard(router);
+  setupCustomerGuard(router);
   setupAccessGuard(router);
 }
 

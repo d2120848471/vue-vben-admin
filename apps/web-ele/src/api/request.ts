@@ -130,8 +130,53 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   return client;
 }
 
+function createCustomerAuthRequestClient(
+  baseURL: string,
+  options?: RequestClientOptions,
+) {
+  const client = new RequestClient({
+    ...options,
+    baseURL,
+  });
+
+  client.addRequestInterceptor({
+    fulfilled: async (config) => {
+      // 客户公开认证接口不读取后台 accessStore，避免 admin token 污染客户登录态。
+      config.headers['Accept-Language'] = preferences.app.locale;
+      return config;
+    },
+  });
+
+  client.addResponseInterceptor(
+    defaultResponseInterceptor({
+      codeField: 'code',
+      dataField: 'data',
+      successCode: 0,
+    }),
+  );
+
+  client.addResponseInterceptor(
+    errorMessageResponseInterceptor((msg: string, error) => {
+      const responseData = error?.response?.data ?? {};
+      const errorMessage =
+        responseData?.msg ?? responseData?.error ?? responseData?.message ?? '';
+
+      ElMessage.error(errorMessage || msg);
+    }),
+  );
+
+  return client;
+}
+
 export const requestClient = createRequestClient(apiURL, {
   responseReturn: 'data',
 });
+
+export const customerAuthRequestClient = createCustomerAuthRequestClient(
+  apiURL,
+  {
+    responseReturn: 'data',
+  },
+);
 
 export const baseRequestClient = new RequestClient({ baseURL: apiURL });
