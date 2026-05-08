@@ -1,7 +1,8 @@
 /* eslint-disable vue/one-component-per-file */
 
-import { createApp, defineComponent, h, nextTick } from 'vue';
+import { createApp, defineComponent, h, inject, nextTick, provide } from 'vue';
 
+import { ElMessageBox } from 'element-plus';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import CustomersPage from './index.vue';
@@ -9,6 +10,7 @@ import CustomersPage from './index.vue';
 const gridConfigState = vi.hoisted(() => ({
   latest: null as any,
   reload: vi.fn(),
+  rowStatus: 1,
 }));
 
 const accessState = vi.hoisted(() => ({
@@ -46,7 +48,7 @@ vi.mock('#/adapter/vxe-table', () => ({
             company_name: '测试客户',
             id: 7,
             phone: '13800000000',
-            status: 1,
+            status: gridConfigState.rowStatus,
           };
           return () =>
             h('section', { 'data-test': 'customer-grid' }, [
@@ -89,6 +91,7 @@ vi.mock('./components/ResetPayPasswordDialog.vue', () => ({
 }));
 
 vi.mock('element-plus', () => {
+  const dropdownCommandKey = Symbol('dropdown-command');
   const ElButton = defineComponent({
     name: 'ElButtonStub',
     emits: ['click'],
@@ -103,17 +106,64 @@ vi.mock('element-plus', () => {
   });
   const ElSwitch = defineComponent({
     name: 'ElSwitchStub',
+    props: {
+      modelValue: {
+        default: false,
+        type: Boolean,
+      },
+    },
     emits: ['change'],
-    setup(_, { attrs, emit }) {
+    setup(props, { attrs, emit }) {
       return () =>
         h(
           'button',
           {
             ...attrs,
             'data-test': 'status-switch',
-            onClick: () => emit('change', 0),
+            onClick: () => emit('change', !props.modelValue),
           },
-          'switch',
+          props.modelValue ? '启用' : '禁用',
+        );
+    },
+  });
+  const ElDropdown = defineComponent({
+    name: 'ElDropdownStub',
+    emits: ['command'],
+    setup(_, { emit, slots }) {
+      provide(dropdownCommandKey, (command: string) =>
+        emit('command', command),
+      );
+      return () =>
+        h('div', { 'data-test': 'customer-more-actions' }, [
+          slots.default?.(),
+          slots.dropdown?.(),
+        ]);
+    },
+  });
+  const ElDropdownMenu = defineComponent({
+    name: 'ElDropdownMenuStub',
+    setup(_, { slots }) {
+      return () => h('div', slots.default?.());
+    },
+  });
+  const ElDropdownItem = defineComponent({
+    name: 'ElDropdownItemStub',
+    props: {
+      command: {
+        required: true,
+        type: String,
+      },
+    },
+    setup(props, { attrs, slots }) {
+      const dispatch = inject<(command: string) => void>(
+        dropdownCommandKey,
+        () => {},
+      );
+      return () =>
+        h(
+          'button',
+          { ...attrs, onClick: () => dispatch(props.command) },
+          slots.default?.(),
         );
     },
   });
@@ -125,6 +175,9 @@ vi.mock('element-plus', () => {
   });
   return {
     ElButton,
+    ElDropdown,
+    ElDropdownItem,
+    ElDropdownMenu,
     ElMessage: { success: vi.fn() },
     ElMessageBox: { confirm: vi.fn().mockResolvedValue(undefined) },
     ElSwitch,
@@ -134,11 +187,16 @@ vi.mock('element-plus', () => {
 
 async function renderPage() {
   const root = document.createElement('div');
+  const errors: unknown[] = [];
   document.body.append(root);
   const app = createApp(CustomersPage);
+  app.config.errorHandler = (error) => {
+    errors.push(error);
+  };
   app.mount(root);
   await nextTick();
   return {
+    errors,
     root,
     unmount() {
       app.unmount();
@@ -165,6 +223,7 @@ describe('CustomersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     gridConfigState.latest = null;
+    gridConfigState.rowStatus = 1;
     apiMocks.getCustomerListApi.mockResolvedValue({
       list: [],
       pagination: { total: 0 },
@@ -185,6 +244,7 @@ describe('CustomersPage', () => {
     expect(view.root.textContent).toContain('新增');
     expect(view.root.textContent).toContain('详情');
     expect(view.root.textContent).toContain('编辑');
+    expect(view.root.textContent).toContain('更多');
     expect(view.root.textContent).toContain('重置登录密码');
     expect(view.root.textContent).toContain('重置支付密码');
     expect(
@@ -207,18 +267,81 @@ describe('CustomersPage', () => {
     ]);
   });
 
-  it('shows status action text from the next operation', async () => {
+  it('changes enabled customer status from the status switch', async () => {
     const view = await renderPage();
     mounted.push(view);
 
-    expect(view.root.textContent).toContain('启用');
-    expect(view.root.textContent).toContain('禁用');
+    const switchButton = view.root.querySelector('[data-test="status-switch"]');
 
-    clickButton(view.root, '禁用');
+    expect(switchButton).toBeTruthy();
+    expect(switchButton?.getAttribute('aria-label')).toBe('禁用客户');
+    switchButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flushPromises();
 
     expect(apiMocks.updateCustomerStatusApi).toHaveBeenCalledWith(7, 0);
     expect(gridConfigState.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps row actions in one visible line', async () => {
+    const view = await renderPage();
+    mounted.push(view);
+
+    const actionGroup = view.root.querySelector(
+      '[data-test="customer-row-actions"]',
+    );
+
+    expect(actionGroup).toBeTruthy();
+    const directButtons = [...(actionGroup?.children ?? [])]
+      .filter((child) => child.tagName === 'BUTTON')
+      .map((child) => child.textContent?.trim());
+
+    expect(directButtons).toEqual(['详情', '编辑']);
+    expect(actionGroup?.textContent).toContain('更多');
+  });
+
+  it('enables disabled customer from row action', async () => {
+    gridConfigState.rowStatus = 0;
+    const view = await renderPage();
+    mounted.push(view);
+
+    const switchButton = view.root.querySelector('[data-test="status-switch"]');
+
+    expect(switchButton).toBeTruthy();
+    expect(switchButton?.getAttribute('aria-label')).toBe('启用客户');
+    switchButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+
+    expect(apiMocks.updateCustomerStatusApi).toHaveBeenCalledWith(7, 1);
+    expect(gridConfigState.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('deletes customer after confirmation and reloads list', async () => {
+    const view = await renderPage();
+    mounted.push(view);
+
+    clickButton(view.root, '删除');
+    await flushPromises();
+
+    expect(ElMessageBox.confirm).toHaveBeenCalledWith(
+      '确认删除客户 测试客户 吗？删除后手机号仍会被占用。',
+      '删除确认',
+      { type: 'warning' },
+    );
+    expect(apiMocks.deleteCustomerApi).toHaveBeenCalledWith(7);
+    expect(gridConfigState.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not delete or surface an error when delete confirmation is cancelled', async () => {
+    vi.mocked(ElMessageBox.confirm).mockRejectedValueOnce(new Error('cancel'));
+    const view = await renderPage();
+    mounted.push(view);
+
+    clickButton(view.root, '删除');
+    await flushPromises();
+
+    expect(apiMocks.deleteCustomerApi).not.toHaveBeenCalled();
+    expect(gridConfigState.reload).not.toHaveBeenCalled();
+    expect(view.errors).toEqual([]);
   });
 
   it('queries list through mapper and converts grid result', async () => {

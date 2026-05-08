@@ -24,6 +24,8 @@ import { CUSTOMER_MANAGE_AUTH_CODE } from '../constants';
 import { buildCustomerListQuery } from '../mappers';
 import { buildCustomerColumns, buildCustomerFilterSchema } from '../schemas';
 
+type CustomerMoreAction = 'delete' | 'reset-password' | 'reset-pay-password';
+
 /**
  * 客户列表页状态和请求编排集中在这里，页面 SFC 只保留 Grid 插槽和弹窗装配。
  */
@@ -100,15 +102,42 @@ export function useCustomerPage() {
     }
   }
 
+  async function handleStatusSwitchChange(
+    row: CustomerListItem,
+    enabled: boolean,
+  ) {
+    await handleStatusChange(row, enabled ? 1 : 0);
+  }
+
   async function handleDelete(row: CustomerListItem) {
-    await ElMessageBox.confirm(
+    const confirmed = await ElMessageBox.confirm(
       `确认删除客户 ${row.company_name} 吗？删除后手机号仍会被占用。`,
       '删除确认',
       { type: 'warning' },
-    );
+    )
+      .then(() => true)
+      .catch(() => false);
+    if (!confirmed) {
+      return;
+    }
     await deleteCustomerApi(row.id);
     ElMessage.success('客户已移入回收站');
     await gridApi.reload();
+  }
+
+  async function handleMoreAction(
+    row: CustomerListItem,
+    action: CustomerMoreAction,
+  ) {
+    if (action === 'reset-password') {
+      openResetPasswordDialog(row);
+      return;
+    }
+    if (action === 'reset-pay-password') {
+      openResetPayPasswordDialog(row);
+      return;
+    }
+    await handleDelete(row);
   }
 
   async function handleDialogSaved() {
@@ -151,7 +180,9 @@ export function useCustomerPage() {
     editingCustomer,
     handleDelete,
     handleDialogSaved,
+    handleMoreAction,
     handleStatusChange,
+    handleStatusSwitchChange,
     loadingStatusIds,
     openCreateDialog,
     openDetailDialog,

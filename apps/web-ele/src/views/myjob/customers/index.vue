@@ -1,7 +1,13 @@
 <script lang="ts" setup>
 import { Page } from '@vben/common-ui';
 
-import { ElButton, ElTag } from 'element-plus';
+import {
+  ElButton,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
+  ElSwitch,
+} from 'element-plus';
 
 import { MYJOB_PAGE_CONTENT_CLASS } from '../shared';
 import CustomerDetailDialog from './components/CustomerDetailDialog.vue';
@@ -9,7 +15,6 @@ import CustomerDialog from './components/CustomerDialog.vue';
 import ResetPasswordDialog from './components/ResetPasswordDialog.vue';
 import ResetPayPasswordDialog from './components/ResetPayPasswordDialog.vue';
 import { useCustomerPage } from './composables/useCustomerPage';
-import { resolveCustomerStatusText } from './schemas';
 
 const {
   canManage,
@@ -19,15 +24,13 @@ const {
   dialogMode,
   dialogVisible,
   editingCustomer,
-  handleDelete,
   handleDialogSaved,
-  handleStatusChange,
+  handleMoreAction,
+  handleStatusSwitchChange,
   loadingStatusIds,
   openCreateDialog,
   openDetailDialog,
   openEditDialog,
-  openResetPasswordDialog,
-  openResetPayPasswordDialog,
   resetPasswordVisible,
   resetPayPasswordVisible,
   selectedCustomer,
@@ -43,12 +46,19 @@ const {
         </ElButton>
       </template>
       <template #status="{ row }">
-        <ElTag :type="row.status === 1 ? 'success' : 'info'">
-          {{ resolveCustomerStatusText(row.status) }}
-        </ElTag>
+        <ElSwitch
+          :aria-label="row.status === 1 ? '禁用客户' : '启用客户'"
+          :disabled="!canManage || loadingStatusIds[row.id]"
+          :loading="loadingStatusIds[row.id]"
+          :model-value="row.status === 1"
+          @change="(value) => handleStatusSwitchChange(row, value === true)"
+        />
       </template>
       <template #actions="{ row }">
-        <div class="flex flex-wrap items-center gap-2">
+        <div
+          class="flex items-center gap-2 whitespace-nowrap"
+          data-test="customer-row-actions"
+        >
           <ElButton link type="primary" @click="openDetailDialog(row)">
             详情
           </ElButton>
@@ -56,27 +66,25 @@ const {
             <ElButton link type="primary" @click="openEditDialog(row)">
               编辑
             </ElButton>
-            <ElButton
-              link
-              :loading="loadingStatusIds[row.id]"
-              :type="row.status === 1 ? 'warning' : 'success'"
-              @click="handleStatusChange(row, row.status === 1 ? 0 : 1)"
+            <ElDropdown
+              trigger="click"
+              @command="(action) => handleMoreAction(row, action)"
             >
-              {{ row.status === 1 ? '禁用' : '启用' }}
-            </ElButton>
-            <ElButton link type="primary" @click="openResetPasswordDialog(row)">
-              重置登录密码
-            </ElButton>
-            <ElButton
-              link
-              type="primary"
-              @click="openResetPayPasswordDialog(row)"
-            >
-              重置支付密码
-            </ElButton>
-            <ElButton link type="danger" @click="handleDelete(row)">
-              删除
-            </ElButton>
+              <ElButton link type="primary">更多</ElButton>
+              <template #dropdown>
+                <ElDropdownMenu>
+                  <ElDropdownItem command="reset-password">
+                    重置登录密码
+                  </ElDropdownItem>
+                  <ElDropdownItem command="reset-pay-password">
+                    重置支付密码
+                  </ElDropdownItem>
+                  <ElDropdownItem command="delete" divided>
+                    删除
+                  </ElDropdownItem>
+                </ElDropdownMenu>
+              </template>
+            </ElDropdown>
           </template>
         </div>
       </template>

@@ -78,7 +78,7 @@ function buildBaseColumns() {
     {
       field: 'actions',
       fixed: 'right' as const,
-      minWidth: 260,
+      minWidth: 220,
       slots: { default: 'actions' },
       title: '操作',
     },

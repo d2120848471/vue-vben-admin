@@ -50,6 +50,14 @@ describe('admin customer schemas', () => {
     ]);
   });
 
+  it('keeps the list action column compact because extra actions live in dropdown', () => {
+    const actionColumn = buildCustomerColumns().find(
+      (column) => column.field === 'actions',
+    );
+
+    expect(actionColumn?.minWidth).toBeLessThanOrEqual(260);
+  });
+
   it('resolves status text', () => {
     expect(resolveCustomerStatusText(1)).toBe('启用');
     expect(resolveCustomerStatusText(0)).toBe('禁用');
